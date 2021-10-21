@@ -12,23 +12,8 @@ namespace BVH {
         public Vector3 Offset{
             set { 
                 offset = value;
-                transform.position = value + position;
-                if(transform.parent) {
-                    transform.position += transform.parent.position;
-                }
+                transform.localPosition = offset;
                 updateLines();
-            }
-        }
-        Vector3 position = empty;
-        public Vector3 Position{
-            set {
-                position = value;
-            }
-        }
-        Vector3 rotation = empty;
-        public Vector3 Rotation{
-            set { 
-                rotation = value;
             }
         }
         public List<BVHPartObject> Child = new List<BVHPartObject>();
@@ -37,56 +22,35 @@ namespace BVH {
         public List<Tuple<BVHPartObject, int>> ChannelDatas;
 
         public void setPosOrRot(int idx, float num) {
-            if (idx < 3) {
-                Vector3 tmp = rotation;
-                if (idx == 0) tmp.x=num;
-                else if (idx == 1) tmp.y=num;
-                else if (idx == 2) tmp.z=num;
-                Rotation = tmp;
-            }
-            else {
-                Vector3 tmp = position;
-                if (idx == 3) tmp.x=num;
-                else if (idx == 4) tmp.y=num;
-                else if (idx == 5) tmp.z=num;
-                Position = tmp;
-            }
-        }
+            if (idx == 0) transform.rotation *= Quaternion.Euler(num, 0, 0);
+            else if (idx == 1) transform.rotation *= Quaternion.Euler(0, num, 0);
+            else if (idx == 2) transform.rotation *= Quaternion.Euler(0, 0, num);
 
-        public void update(){
+            else if (idx == 3) transform.position += new Vector3(num, 0, 0);
+            else if (idx == 4) transform.position += new Vector3(0, num, 0);
+            else if (idx == 5) transform.position += new Vector3(0, 0, num);
             
-            if(position != empty) {
-                // value += transform.parent.position;
-                var value = position + offset;
-                transform.position = value;
-            }
-
-            if(rotation != empty) {
-                var value = rotation;
-                if(gameObject.name=="RightLowLeg")
-                Debug.Log(transform.eulerAngles+", "+value);
-                if (transform.parent){
-                    value += transform.parent.eulerAngles;
-                }
-                transform.eulerAngles = value;
-                if(gameObject.name=="RightLowLeg")
-                Debug.Log(transform.eulerAngles);
-            }
-            foreach(var c in Child){
-                c.update();
-            }
-            updateLine();
+            updateLines();
         }
 
         public void applyFrame(int frameIdx) {
+            BVHPartObject lastObjRotation = null;
+            BVHPartObject lastObjPosition = null;
             for(int i = 0; i < ChannelDatas.Count; i++){
                 var tmp = ChannelDatas[i];
                 var partObj = tmp.Item1;
+                int posAndRotIdx = tmp.Item2;
+                if (posAndRotIdx < 3 && lastObjRotation != partObj) {
+                    partObj.transform.rotation = partObj.Parent ? partObj.Parent.transform.rotation : Quaternion.Euler(0, 0, 0);
+                    lastObjRotation = partObj;
+                }
+                else if (posAndRotIdx >= 3 && lastObjPosition != partObj) {
+                    partObj.transform.position = (partObj.Parent ? partObj.Parent.transform.position : Vector3.zero) + partObj.offset;
+                    lastObjPosition = partObj;
+                }
                 float num = motionData[frameIdx, i];
-                partObj.setPosOrRot(tmp.Item2, num);
-                // Debug.Log(tmp.Item2+", "+partObj.rotation);
+                partObj.setPosOrRot(posAndRotIdx, num);
             }
-            update();
         }
 
         // for motion
@@ -101,7 +65,7 @@ namespace BVH {
             if (parentObject){
                 parentObject.AddChild(obj);
                 obj.myLine = new GameObject();
-                obj.myLine.transform.position = parentObject.position;
+                obj.myLine.transform.position = parentObject.transform.position;
                 LineRenderer lr = obj.myLine.AddComponent<LineRenderer>();
                 lr.startWidth = 0.5f;
                 lr.endWidth = 0.5f;

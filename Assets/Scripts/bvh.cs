@@ -6,21 +6,20 @@ public class bvh : MonoBehaviour
 {
     double time = 0;
     int frame = 0;
-    BVH.BVHPartObject BVHObject;
+    BVH.BVHObject BVHObject;
     void Start()
     {
-        BVHObject = BVH.Reader.LoadFile(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\walk_loop.bvh");
-        // BVHObject.applyFrame(20);
+        BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\dance3.bvh");
     }
 
     void Update()
     {
         time += Time.deltaTime;
-        if (time > BVHObject.frameTime) {
+        if (time > BVHObject.FrameTime) {
           BVHObject.applyFrame(frame);
           time = 0;
           frame += 1;
-          frame %= BVHObject.frameCount;
+          frame %= BVHObject.FrameCount;
         }
     }
 

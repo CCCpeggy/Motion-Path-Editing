@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using MathNet.Numerics.LinearAlgebra;
+using MathNet.Numerics.LinearAlgebra.Double;
 
 
 namespace BVH {
@@ -56,6 +58,24 @@ namespace BVH {
                 partObj.setPosOrRot(posAndRotIdx, thisMotionValue);
             }
             obj.UpdateLines();
+             
+
+            // for(int i = 0; i < obj.ChannelDatas.Count; i++){
+            //     Utility.GetB03();
+            //     Matrix<double> A = DenseMatrix.OfArray(new double[,] {
+            //         {1,1,1,1},
+            //         {1,2,3,4},
+            //         {4,3,2,1}}
+            //     );
+            //     var a = Matrix<double>.Build.Random(500, 500);
+            //     var b = Vector<double>.Build.Random(500);
+            //     var x = a.Solve(b);
+            //     Debug.Log(x);
+            // }
+        }
+    
+        public void FitPathCurve() {
+            
         }
     }
 

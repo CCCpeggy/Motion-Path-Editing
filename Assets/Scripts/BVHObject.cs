@@ -28,6 +28,7 @@ namespace BVH {
             Root = BVHPartObject.ReadPart(ref bvhDataIter, this);
             Utility.IterData.CompareAndNext(ref bvhDataIter, "MOTION");
             Motion = BVHMotion.readMotion(ref bvhDataIter, this);
+            Motion.FitPathCurve();
         }
         
         public void UpdateLines(BVHPartObject partObject=null){

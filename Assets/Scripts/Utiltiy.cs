@@ -13,6 +13,15 @@ namespace BVH {
             }
         }
 
+        public static float GetAngleAvg(float a1, float a2, float alpha) {
+            Vector2 v1 = new Vector2(Mathf.Cos(a1 * Mathf.Deg2Rad), Mathf.Sin(a1 * Mathf.Deg2Rad));
+            Vector2 v2 = new Vector2(Mathf.Cos(a2 * Mathf.Deg2Rad), Mathf.Sin(a2 * Mathf.Deg2Rad));
+            Vector2 v3 = v1 * (1-alpha) + v2 * alpha;
+            float angle = Vector2.Angle(v3, new Vector2(1, 0));
+            if (v3.y < 0) angle = -angle;
+            return angle;
+        }
+
         public class IterData {
 
             public static string GetAndNext(ref IEnumerator<string> iter) {

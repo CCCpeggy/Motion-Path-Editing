@@ -130,11 +130,11 @@ namespace BVH {
                     partObj.transform.localPosition += partObj.Offset;
                     lastObj = partObj;
                 }
-                float lastMotionValue = motionData[(int)frameIdx, i];
-                float nextMotionValue = motionData[((int)frameIdx+1)%frameCount, i];
-                float alpha = frameIdx - (int)frameIdx;
-                float thisMotionValue = lastMotionValue * (1-alpha) + nextMotionValue * alpha;
-
+                int lastFrameIdx = (int)frameIdx;
+                float lastMotionValue = motionData[lastFrameIdx, i];
+                float nextMotionValue = motionData[(lastFrameIdx+1)%frameCount, i];
+                float alpha = frameIdx - lastFrameIdx;
+                float thisMotionValue = Utility.GetAngleAvg(lastMotionValue, nextMotionValue, alpha);
                 partObj.setPosOrRot(posAndRotIdx, thisMotionValue);
             }
             updateLines();

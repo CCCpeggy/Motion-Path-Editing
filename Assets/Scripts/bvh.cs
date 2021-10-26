@@ -8,13 +8,13 @@ public class bvh : MonoBehaviour
     BVH.BVHObject BVHObject;
     void Start()
     {
-        BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\dance3.bvh");
+        BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\walk_loop.bvh");
     }
 
     void Update()
     {
         frame += Time.deltaTime / BVHObject.FrameTime;
-        if (frame > BVHObject.FrameCount) {
+        if (frame > BVHObject.FrameCount-1) {
             frame -= BVHObject.FrameCount;
         }
         BVHObject.ApplyFrame(frame);

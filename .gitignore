@@ -1,3 +1,5 @@
+*NuGet*
+*MathNet.Numerics*
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/master/Unity.gitignore
@@ -52,6 +54,7 @@ ExportedObj/
 *.pdb.meta
 *.mdb.meta
 *.cs.meta
+*.meta
 
 # Unity3D generated file on crash reports
 sysinfo.txt

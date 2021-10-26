@@ -119,7 +119,7 @@ namespace BVH {
                 }
             }
         }
-        public void applyFrame(int frameIdx) {
+        public void ApplyFrame(float frameIdx) {
             BVHPartObject lastObj = null;
             for(int i = 0; i < channelDatas.Count; i++){
                 var partObj = channelDatas[i].Item1;
@@ -130,8 +130,12 @@ namespace BVH {
                     partObj.transform.localPosition += partObj.Offset;
                     lastObj = partObj;
                 }
-                
-                partObj.setPosOrRot(posAndRotIdx, motionData[frameIdx, i]);
+                float lastMotionValue = motionData[(int)frameIdx, i];
+                float nextMotionValue = motionData[((int)frameIdx+1)%frameCount, i];
+                float alpha = frameIdx - (int)frameIdx;
+                float thisMotionValue = lastMotionValue * (1-alpha) + nextMotionValue * alpha;
+
+                partObj.setPosOrRot(posAndRotIdx, thisMotionValue);
             }
             updateLines();
         }

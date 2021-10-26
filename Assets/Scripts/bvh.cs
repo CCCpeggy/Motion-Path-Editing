@@ -4,8 +4,7 @@ using UnityEngine;
 
 public class bvh : MonoBehaviour
 {
-    double time = 0;
-    int frame = 0;
+    float frame = 0;
     BVH.BVHObject BVHObject;
     void Start()
     {
@@ -14,13 +13,11 @@ public class bvh : MonoBehaviour
 
     void Update()
     {
-        time += Time.deltaTime;
-        if (time > BVHObject.FrameTime) {
-          BVHObject.applyFrame(frame);
-          time = 0;
-          frame += 1;
-          frame %= BVHObject.FrameCount;
+        frame += Time.deltaTime / BVHObject.FrameTime;
+        if (frame > BVHObject.FrameCount) {
+            frame -= BVHObject.FrameCount;
         }
+        BVHObject.ApplyFrame(frame);
     }
 
 }

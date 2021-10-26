@@ -36,6 +36,61 @@ namespace BVH {
                     motion.motionData[i, j] = num;
                 }
             }
+            
+            int n = motion.frameCount;
+
+            List<double> tmp=new List<double>();
+            double d = 0;
+            tmp.Add(0);
+            for(int i = 0; i < n-1; i++){
+                Vector2 v1 = new Vector2(motion.motionData[i, 0],  motion.motionData[i, 2]);
+                Vector2 v2 = new Vector2(motion.motionData[i+1, 0],  motion.motionData[i+1, 2]);
+                d += Vector2.Distance(v1, v2);
+                tmp.Add(d);
+            }
+            for(int i = 0; i < n; i++){
+                tmp[i] /= d;
+            }
+
+            Matrix<double> A = new DenseMatrix(4, 4);
+            Matrix<double> b = new DenseMatrix(4, 2);
+            for(int t = 0; t < n; t++){
+                double[] B = 
+                {
+                    Utility.Curve.GetB0((double)tmp[t]),
+                    Utility.Curve.GetB1((double)tmp[t]),
+                    Utility.Curve.GetB2((double)tmp[t]),
+                    Utility.Curve.GetB3((double)tmp[t])
+                };
+                for (int i = 0; i < 4; i++) {
+                    for (int j = 0; j < 4; j++) {
+                        A[i, j] += B[i] * B[j];
+                    }
+                    b[i, 0] += B[i] * motion.motionData[i, 0];
+                    b[i, 1] += B[i] * motion.motionData[i, 2];
+                }
+            }
+            var x = A.Solve(b);
+            Debug.Log(A);
+            Debug.Log(b);
+            Debug.Log(x);
+            var curve = new GameObject();
+            curve.name = "Curve";
+            int count = 0;
+            double step=1;
+            for(double i=0; i < n;i += step){
+                Vector3 last = BVH.Utility.Curve.GetP((i-step*1.05)/n, x);
+                Vector3 p = BVH.Utility.Curve.GetP(i/n, x);
+                var line = new GameObject();
+                line.name = "Curve_" + count++;
+                line.transform.parent = curve.transform;
+                LineRenderer lr = line.AddComponent<LineRenderer>();
+                lr.SetPosition(0, last);
+                lr.SetPosition(1, p);
+                lr.startWidth = 0.2f;
+                lr.endWidth = 0.2f;
+                last = p;
+            }
             return motion;
         }
         
@@ -58,20 +113,6 @@ namespace BVH {
                 partObj.setPosOrRot(posAndRotIdx, thisMotionValue);
             }
             obj.UpdateLines();
-             
-
-            // for(int i = 0; i < obj.ChannelDatas.Count; i++){
-            //     Utility.GetB03();
-            //     Matrix<double> A = DenseMatrix.OfArray(new double[,] {
-            //         {1,1,1,1},
-            //         {1,2,3,4},
-            //         {4,3,2,1}}
-            //     );
-            //     var a = Matrix<double>.Build.Random(500, 500);
-            //     var b = Vector<double>.Build.Random(500);
-            //     var x = a.Solve(b);
-            //     Debug.Log(x);
-            // }
         }
     
         public void FitPathCurve() {

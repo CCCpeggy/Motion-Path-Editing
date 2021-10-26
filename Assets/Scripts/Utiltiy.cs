@@ -10,22 +10,22 @@ namespace BVH {
         public class Curve {
             const float one_six = (float)1/6;
             public static double GetB0(double t) {
-                return one_six  * (1-t) * (1-t) * (1-t);
+                return one_six * (1-t) * (1-t) * (1-t);
             }
 
             public static double GetB1(double t) {
-                return one_six  * (3*t*t*t - 6*t*t + 4);
+                return one_six * (3*t*t*t - 6*t*t + 4);
             }
 
             public static double GetB2(double t) {
-                return one_six  * (-3*t*t*t + 3*t*t + 3*t + 1);
+                return one_six * (-3*t*t*t + 3*t*t + 3*t + 1);
             }
 
             public static double GetB3(double t) {
                 return one_six * t * t * t;
             }
 
-            public static Vector3 GetP(double u, Vector<double>[] p) {
+            public static Vector3 GetP(double u, Matrix<double> p) {
                 Matrix<double> m = DenseMatrix.OfArray(new double[,] {
                     {-1 , 3, -3 , 1},
                     {3 , -6, 3 , 0},
@@ -33,9 +33,8 @@ namespace BVH {
                     {1 , 4, 1 , 0}}
                 );
                 Vector<double> v = new DenseVector(new double[] {u*u*u, u*u, u, 1});
-                double x = v.ToRowMatrix().Multiply(m.Multiply(p[0]))[0] * one_six;
-                double z = v.ToRowMatrix().Multiply(m.Multiply(p[1]))[0] * one_six;
-                return new Vector3((float)x, 0, (float)z);
+                var points = v.ToRowMatrix().Multiply(m).Multiply(p) * one_six;
+                return new Vector3((float)points[0, 0], 0, (float)points[0, 1]);
             }
 
         }

@@ -11,6 +11,7 @@ public class bvh : MonoBehaviour
     void Start()
     {
         BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\walk_loop.bvh");
+        //DrawCurve();
     }
 
     void Update()
@@ -19,10 +20,12 @@ public class bvh : MonoBehaviour
     }
 
     void DrawCurve() {
-        Vector<double>[] tmp = {
-            new DenseVector(new double[] {0, 1, 3, 7}), 
-            new DenseVector(new double[] {-1, 0, 3, -3}), 
-        };
+        Matrix<double> tmp = DenseMatrix.OfArray(new double[,] {
+            {0, -1},
+            {1, 0},
+            {3, 3},
+            {7, -3}}
+        );
 
         var curve = new GameObject();
         curve.name = "Curve";

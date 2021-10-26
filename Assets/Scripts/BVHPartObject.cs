@@ -12,6 +12,69 @@ namespace BVH {
         public BVHPartObject Parent = null;
         GameObject myLine;
 
+        public static BVHPartObject ReadPart(ref IEnumerator<string> bvhDataIter, BVHObject obj, BVHPartObject parentObject=null) {
+            string partName = Utility.IterData.GetAndNext(ref bvhDataIter);
+            BVHPartObject partObject = BVHPartObject.CreateGameObject(partName, parentObject);
+            Utility.IterData.CheckAndNext(ref bvhDataIter, "{");
+            while (true){
+                switch(Utility.IterData.GetAndNext(ref bvhDataIter)) {
+                    case "OFFSET":
+                        partObject.Offset = Utility.IterData.GetVec3AndNext(ref bvhDataIter);
+                        break;
+                    case "CHANNELS":
+                        int channelAmount = int.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
+                        for (int i = 0; i < channelAmount; i++) {
+                            string channelName = Utility.IterData.GetAndNext(ref bvhDataIter);
+                            int idx = 0;
+                            switch(channelName.Substring(1)) {
+                                case "rotation":
+                                    idx = 0;
+                                    break;
+                                case "position":
+                                    idx = 3;
+                                    break;
+                                default:
+                                    Debug.LogError("非預期輸入");
+                                    break;
+                            }
+                            switch(channelName[0]) {
+                                case 'X':
+                                    idx += 0;
+                                    break;
+                                case 'Y':
+                                    idx += 1;
+                                    break;
+                                case 'Z':
+                                    idx += 2;
+                                    break;
+                                default:
+                                    Debug.LogError("非預期輸入");
+                                    break;
+                            }
+                            var channelData = new Tuple<BVHPartObject, int>(partObject, idx);
+                            obj.ChannelDatas.Add(channelData);
+                        }
+                        break;
+                    case "JOINT":
+                        var childObj = ReadPart(ref bvhDataIter, obj, partObject);
+                        break;
+                    case "End":
+                        var endObj = BVHPartObject.CreateGameObject("end", partObject);
+                        Utility.IterData.CheckAndNext(ref bvhDataIter, "Site");
+                        Utility.IterData.CheckAndNext(ref bvhDataIter, "{");
+                        Utility.IterData.CheckAndNext(ref bvhDataIter, "OFFSET");
+                        endObj.Offset = Utility.IterData.GetVec3AndNext(ref bvhDataIter);
+                        Utility.IterData.CheckAndNext(ref bvhDataIter, "}");
+                        break;
+                    case "}":
+                        return partObject;
+                    default:
+                        Debug.LogError("非預期輸入");
+                        return null;
+                }
+            }
+        }
+
         public void setPosOrRot(int idx, float num) {
             if (idx == 0) transform.rotation *= Quaternion.Euler(num, 0, 0);
             else if (idx == 1) transform.rotation *= Quaternion.Euler(0, num, 0);

@@ -13,11 +13,6 @@ public class bvh : MonoBehaviour
 
     void Update()
     {
-        frame += Time.deltaTime / BVHObject.FrameTime;
-        if (frame > BVHObject.FrameCount-1) {
-            frame -= BVHObject.FrameCount;
-        }
-        BVHObject.ApplyFrame(frame);
+        BVHObject.ApplyFrame(Time.deltaTime);
     }
-
 }

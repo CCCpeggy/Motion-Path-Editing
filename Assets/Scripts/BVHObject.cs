@@ -39,11 +39,11 @@ namespace BVH {
             bvhDataIter.MoveNext();
             Utility.IterData.CheckAndNext(ref bvhDataIter, "HIERARCHY");
             Utility.IterData.CompareAndNext(ref bvhDataIter, "ROOT");
-            Root = ReadPart(ref bvhDataIter);
+            Root = readPart(ref bvhDataIter);
             Utility.IterData.CompareAndNext(ref bvhDataIter, "MOTION");
-            ReadMotion(ref bvhDataIter);
+            readMotion(ref bvhDataIter);
         }
-        public BVHPartObject ReadPart(ref IEnumerator<string> bvhDataIter, BVHPartObject parentObject=null) {
+        private BVHPartObject readPart(ref IEnumerator<string> bvhDataIter, BVHPartObject parentObject=null) {
             string partName = Utility.IterData.GetAndNext(ref bvhDataIter);
             BVHPartObject obj = BVHPartObject.CreateGameObject(partName, parentObject);
             Utility.IterData.CheckAndNext(ref bvhDataIter, "{");
@@ -105,7 +105,7 @@ namespace BVH {
                 }
             }
         }
-        public void ReadMotion(ref IEnumerator<string> bvhDataIter) {
+        private void readMotion(ref IEnumerator<string> bvhDataIter) {
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Frames:");
             frameCount = int.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Frame");

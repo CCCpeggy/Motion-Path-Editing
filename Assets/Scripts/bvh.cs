@@ -7,15 +7,17 @@ using MathNet.Numerics.LinearAlgebra.Double;
 public class bvh : MonoBehaviour
 {
     float frame = 0;
-    BVH.BVHObject BVHObject;
+    BVH.BVHObject BVHObject = null;
     void Start()
     {
-        BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\walk_loop.bvh");
+        BVHObject = new BVH.BVHObject(@"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\dance02.bvh");
     }
 
     void Update()
     {
-        BVHObject.ApplyFrame(Time.deltaTime);
+        if (BVHObject != null) {
+            BVHObject.ApplyFrame(Time.deltaTime);
+        }
     }
 
 }

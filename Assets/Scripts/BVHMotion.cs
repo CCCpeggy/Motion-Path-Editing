@@ -57,10 +57,10 @@ namespace BVH {
             for(int t = 0; t < n; t++){
                 double[] B = 
                 {
-                    Utility.Curve.GetB0((double)tmp[t]),
-                    Utility.Curve.GetB1((double)tmp[t]),
-                    Utility.Curve.GetB2((double)tmp[t]),
-                    Utility.Curve.GetB3((double)tmp[t])
+                    Curve.GetB0((double)tmp[t]),
+                    Curve.GetB1((double)tmp[t]),
+                    Curve.GetB2((double)tmp[t]),
+                    Curve.GetB3((double)tmp[t])
                 };
                 for (int i = 0; i < 4; i++) {
                     for (int j = 0; j < 4; j++) {
@@ -71,27 +71,14 @@ namespace BVH {
                 }
             }
             var x = A.Solve(b);
+
             Debug.Log(A);
             Debug.Log(b);
             Debug.Log(x);
-            var curve = new GameObject();
-            curve.name = "Curve";
-            int count = 0;
-            double step=1;
-            for(double i=0; i < n;i += step){
-                Vector3 last = BVH.Utility.Curve.GetP((i-step*1.05)/n, x);
-                Vector3 p = BVH.Utility.Curve.GetP(i/n, x);
-                var line = new GameObject();
-                line.name = "Curve_" + count++;
-                line.transform.parent = curve.transform;
-                LineRenderer lr = line.AddComponent<LineRenderer>();
-                lr.SetPosition(0, last);
-                lr.SetPosition(1, p);
-                lr.startWidth = 0.2f;
-                lr.endWidth = 0.2f;
-                last = p;
-            }
+            
+            Curve.CreateCurve(x, n, "Path");
             return motion;
+            
         }
         
         public void ApplyFrame(float frameIdx, BVHObject obj) {

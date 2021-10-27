@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 
 namespace BVH {
@@ -26,6 +27,7 @@ namespace BVH {
             Utility.IterData.CheckAndNext(ref bvhDataIter, "HIERARCHY");
             Utility.IterData.CompareAndNext(ref bvhDataIter, "ROOT");
             Root = BVHPartObject.ReadPart(ref bvhDataIter, this);
+            RenamePart();
             Utility.IterData.CompareAndNext(ref bvhDataIter, "MOTION");
             Motion = BVHMotion.readMotion(ref bvhDataIter, this);
             Motion.FitPathCurve();
@@ -44,6 +46,82 @@ namespace BVH {
             float frameTime = time / Motion.FrameTime;
             float frame = frameTime - ((int)(frameTime / Motion.FrameCount)) * Motion.FrameCount;
             Motion.ApplyFrame(frame, this);
+        }
+
+        public void RenamePart() {
+            Root.name = "Hips";
+            bool chest = false, leftLeg = false, rightLeg = false;
+            Assert.IsTrue(Root.Child.Count == 3);
+            foreach(var part in Root.Child) {
+                if (!chest && part.Offset.y > 0 && part.Offset.x <= 0){
+                    chest = true;
+                    part.name = "Chest";
+                    Assert.IsTrue(part.Child.Count == 3);
+                    bool leftCollar = false, rightCollar = false, neck = false;
+                    foreach(var part2 in part.Child) {
+                        if (!neck && part2.Offset.x == 0 ) {
+                            neck = true;
+                            part2.name = "Neck";
+                            Assert.IsTrue(part2.Child.Count == 1);
+                            part2.Child[0].name = "Head";
+                            Assert.IsTrue(part2.Child[0].Child.Count == 1);
+                            Assert.IsTrue(part2.Child[0].Child[0].name == "End");
+                        }
+                        else if (!leftCollar && part2.Offset.x > 0){
+                            leftCollar = true;
+                            part2.name = "LeftCollar";
+                            Assert.IsTrue(part2.Child.Count == 1);
+                            part2.Child[0].name = "LeftUpArm";
+                            Assert.IsTrue(part2.Child[0].Child.Count == 1);
+                            part2.Child[0].Child[0].name = "LeftLowArm";
+                            Assert.IsTrue(part2.Child[0].Child[0].Child.Count == 1);
+                            part2.Child[0].Child[0].Child[0].name = "LeftHand";
+                            Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child.Count == 1);
+                            Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child[0].name == "End");
+                        }
+                        else if (!rightCollar && part2.Offset.x < 0){
+                            rightCollar = true;
+                            part2.name = "RightCollar";
+                            Assert.IsTrue(part2.Child.Count == 1);
+                            part2.Child[0].name = "RightUpArm";
+                            Assert.IsTrue(part2.Child[0].Child.Count == 1);
+                            part2.Child[0].Child[0].name = "RightLowArm";
+                            Assert.IsTrue(part2.Child[0].Child[0].Child.Count == 1);
+                            part2.Child[0].Child[0].Child[0].name = "RightHand";
+                            Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child.Count == 1);
+                            Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child[0].name == "End");
+                        }
+                        else{
+                            Assert.IsTrue(false);
+                        }
+                    }
+                }
+                else if (!leftLeg && part.Offset.x > 0){
+                    leftLeg = true;
+                    part.name = "LeftUpLeg";
+                    Debug.Log(part.Child.Count);
+                    Debug.Log(part.Child[0].name);
+                    Assert.IsTrue(part.Child.Count == 1);
+                    part.Child[0].name = "LeftLowLeg";
+                    Assert.IsTrue(part.Child[0].Child.Count == 1);
+                    part.Child[0].Child[0].name = "LeftFoot";
+                    Assert.IsTrue(part.Child[0].Child[0].Child.Count == 1);
+                    Assert.IsTrue(part.Child[0].Child[0].Child[0].name == "End");
+                }
+                else if (!rightLeg && part.Offset.x < 0){
+                    rightLeg = true;
+                    part.name = "RightUpLeg";
+                    Assert.IsTrue(part.Child.Count == 1);
+                    part.Child[0].name = "RightLowLeg";
+                    Assert.IsTrue(part.Child[0].Child.Count == 1);
+                    part.Child[0].Child[0].name = "RightFoot";
+                    Assert.IsTrue(part.Child[0].Child[0].Child.Count == 1);
+                    Assert.IsTrue(part.Child[0].Child[0].Child[0].name == "End");
+                }
+                else{
+                    Assert.IsTrue(false);
+                }
+            }
         }
     }
 

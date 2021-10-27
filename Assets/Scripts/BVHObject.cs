@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace BVH {
     class BVHObject{
-        BVHPartObject Root;
+        public BVHPartObject Root;
         BVHMotion Motion;
         float time = 0;
         

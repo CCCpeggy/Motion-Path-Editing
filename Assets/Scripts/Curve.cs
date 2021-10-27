@@ -21,16 +21,17 @@ public class Curve : MonoBehaviour {
     public static double GetB3(double t) {
         return one_six * t * t * t;
     }
-
+    
+    
+    static Matrix<double> bm = DenseMatrix.OfArray(new double[,] {
+        {-1 , 3, -3 , 1},
+        {3 , -6, 3 , 0},
+        {-3 , 0, 3 , 0},
+        {1 , 4, 1 , 0}}
+    );
     public static Vector3 GetP(double u, Matrix<double> p) {
-        Matrix<double> m = DenseMatrix.OfArray(new double[,] {
-            {-1 , 3, -3 , 1},
-            {3 , -6, 3 , 0},
-            {-3 , 0, 3 , 0},
-            {1 , 4, 1 , 0}}
-        );
         Vector<double> v = new DenseVector(new double[] {u*u*u, u*u, u, 1});
-        var points = v.ToRowMatrix().Multiply(m).Multiply(p) * one_six;
+        var points = v.ToRowMatrix().Multiply(bm).Multiply(p) * one_six;
         return new Vector3((float)points[0, 0], 0, (float)points[0, 1]);
     }
 
@@ -137,6 +138,8 @@ public class Curve : MonoBehaviour {
         }
     }
     
-
+    public Vector3 GetPos(float t) {
+        return GetP(t, controlPoints);
+    }
 }
 

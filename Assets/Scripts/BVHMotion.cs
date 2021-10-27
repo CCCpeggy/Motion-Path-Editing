@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
+using UnityEngine.Assertions;
 
 
 namespace BVH {
@@ -21,6 +22,7 @@ namespace BVH {
             }
         }
         private float[, ] motionData;
+        private GameObject curve;
 
         public static BVHMotion readMotion(ref IEnumerator<string> bvhDataIter, BVHObject obj) {
             BVHMotion motion = new BVHMotion();
@@ -39,50 +41,79 @@ namespace BVH {
             
             int n = motion.frameCount;
 
-            List<double> tmp=new List<double>();
-            double d = 0;
-            tmp.Add(0);
-            for(int i = 0; i < n-1; i++){
-                Vector2 v1 = new Vector2(motion.motionData[i, 0],  motion.motionData[i, 2]);
-                Vector2 v2 = new Vector2(motion.motionData[i+1, 0],  motion.motionData[i+1, 2]);
-                d += Vector2.Distance(v1, v2);
-                tmp.Add(d);
+            int xIdx=-1, zIdx=-1;
+            for(int i = 0; i < obj.ChannelDatas.Count; i++){
+                var partObj = obj.ChannelDatas[i].Item1;
+                int posAndRotIdx = obj.ChannelDatas[i].Item2;
+                if (partObj == obj.Root) {
+                    if (posAndRotIdx == 3) xIdx = i;
+                    if (posAndRotIdx == 5) zIdx = i;
+                }
             }
-            for(int i = 0; i < n; i++){
-                tmp[i] /= d;
-            }
+            // Assert.IsTrue(xIdx >= 0);
+            // Assert.IsTrue(zIdx >= 0);
+
+            // 讓曲線的每一段是以距離去切割
+            // List<double> tmp=new List<double>();
+            // double d = 0;
+            // tmp.Add(0);
+            // for(int i = 0; i < n-1; i++){
+            //     Vector2 v1 = new Vector2(motion.motionData[i, 0],  motion.motionData[i, 2]);
+            //     Vector2 v2 = new Vector2(motion.motionData[i+1, 0],  motion.motionData[i+1, 2]);
+            //     d += Vector2.Distance(v1, v2);
+            //     tmp.Add(d);
+            // }
+            // for(int i = 0; i < n; i++){
+            //     tmp[i] /= d;
+            // }
 
             Matrix<double> A = new DenseMatrix(4, 4);
             Matrix<double> b = new DenseMatrix(4, 2);
             for(int t = 0; t < n; t++){
                 double[] B = 
                 {
-                    Curve.GetB0((double)tmp[t]),
-                    Curve.GetB1((double)tmp[t]),
-                    Curve.GetB2((double)tmp[t]),
-                    Curve.GetB3((double)tmp[t])
+                    Curve.GetB0((double)t/n),
+                    Curve.GetB1((double)t/n),
+                    Curve.GetB2((double)t/n),
+                    Curve.GetB3((double)t/n)
                 };
                 for (int i = 0; i < 4; i++) {
                     for (int j = 0; j < 4; j++) {
                         A[i, j] += B[i] * B[j];
                     }
-                    b[i, 0] += B[i] * motion.motionData[t, 0];
-                    b[i, 1] += B[i] * motion.motionData[t, 2];
+                    if (xIdx >= 0)
+                        b[i, 0] += B[i] * motion.motionData[t, xIdx];
+                    if (zIdx >= 0)
+                        b[i, 1] += B[i] * motion.motionData[t, zIdx];
                 }
             }
             var x = A.Solve(b);
 
-            Debug.Log(A);
-            Debug.Log(b);
-            Debug.Log(x);
+            // Debug.Log(A);
+            // Debug.Log(b);
+            // Debug.Log(x);
             
-            Curve.CreateCurve(x, n, "Path");
+            motion.curve = Curve.CreateCurve(x, n, "Path");
+            Curve curve = motion.curve.GetComponent<Curve>();
+            
+            for(int t = 0; t < n; t++){
+                Vector3 curPos = curve.GetPos((float)t / n);
+                if (xIdx >= 0)
+                    motion.motionData[t, xIdx] -= curPos.x;
+                if (zIdx >= 0)
+                    motion.motionData[t, zIdx] -= curPos.z;
+            }
+
             return motion;
             
         }
-        
+
         public void ApplyFrame(float frameIdx, BVHObject obj) {
             BVHPartObject lastObj = null;
+            int lastFrameIdx = (int)frameIdx;
+            int nextFrameIdx = (lastFrameIdx + 1) % frameCount;
+            Vector3 lastPos = curve.GetComponent<Curve>().GetPos((float)lastFrameIdx / frameCount);
+            Vector3 nextPos = curve.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
             for(int i = 0; i < obj.ChannelDatas.Count; i++){
                 var partObj = obj.ChannelDatas[i].Item1;
                 int posAndRotIdx = obj.ChannelDatas[i].Item2;
@@ -92,9 +123,12 @@ namespace BVH {
                     partObj.transform.localPosition += partObj.Offset;
                     lastObj = partObj;
                 }
-                int lastFrameIdx = (int)frameIdx;
                 float lastMotionValue = motionData[lastFrameIdx, i];
-                float nextMotionValue = motionData[(lastFrameIdx+1)%frameCount, i];
+                float nextMotionValue = motionData[nextFrameIdx, i];
+                if (partObj == obj.Root && posAndRotIdx >= 3) {
+                    lastMotionValue += lastPos[posAndRotIdx - 3];
+                    nextMotionValue += nextPos[posAndRotIdx - 3];
+                }
                 float alpha = frameIdx - lastFrameIdx;
                 float thisMotionValue = Utility.GetAngleAvg(lastMotionValue, nextMotionValue, alpha);
                 partObj.setPosOrRot(posAndRotIdx, thisMotionValue);

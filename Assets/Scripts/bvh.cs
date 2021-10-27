@@ -1,10 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Double;
 using UnityEditor;
-using UnityEditor.UIElements;
 
 [ExecuteInEditMode]
 public class bvh : MonoBehaviour

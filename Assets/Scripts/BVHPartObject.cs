@@ -5,12 +5,11 @@ using UnityEngine;
 
 
 namespace BVH {
-    class BVHPartObject: MonoBehaviour{
+    public class BVHPartObject: MonoBehaviour{
         static Vector3 empty = new Vector3(0, 0, 0);
         public Vector3 Offset = new Vector3();
         public List<BVHPartObject> Child = new List<BVHPartObject>();
         public BVHPartObject Parent = null;
-        GameObject myLine;
 
         public static BVHPartObject ReadPart(ref IEnumerator<string> bvhDataIter, BVHObject obj, BVHPartObject parentObject=null) {
             string partName = Utility.IterData.GetAndNext(ref bvhDataIter);
@@ -92,9 +91,10 @@ namespace BVH {
             var obj = gobj.AddComponent<BVHPartObject>();
             if (parentObject){
                 parentObject.AddChild(obj);
-                obj.myLine = new GameObject();
-                obj.myLine.transform.position = parentObject.transform.position;
-                LineRenderer lr = obj.myLine.AddComponent<LineRenderer>();
+                // obj.myLine = new GameObject();
+                // obj.myLine.transform.position = parentObject.transform.position;
+                // obj.myLine.transform.parent = parentObject.transform;
+                LineRenderer lr = gobj.AddComponent<LineRenderer>();
                 lr.startWidth = 0.5f;
                 lr.endWidth = 0.5f;
                 lr.SetPosition(0, obj.gameObject.transform.position);
@@ -109,8 +109,8 @@ namespace BVH {
         }
     
         public void UpdateSingleLine(){
-            if(myLine){
-                LineRenderer lr = myLine.GetComponent<LineRenderer>();
+            LineRenderer lr = GetComponent<LineRenderer>();
+            if (lr) {
                 lr.SetPosition(0, gameObject.transform.position);
                 lr.SetPosition(1, Parent.gameObject.transform.position);
             }

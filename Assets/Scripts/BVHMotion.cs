@@ -22,7 +22,7 @@ namespace BVH {
             }
         }
         private float[, ] motionData;
-        private GameObject curve;
+        public GameObject CurveGameObject;
 
         public static BVHMotion readMotion(ref IEnumerator<string> bvhDataIter, BVHObject obj) {
             BVHMotion motion = new BVHMotion();
@@ -93,8 +93,8 @@ namespace BVH {
             // Debug.Log(b);
             // Debug.Log(x);
             
-            motion.curve = Curve.CreateCurve(x, n, "Path");
-            Curve curve = motion.curve.GetComponent<Curve>();
+            motion.CurveGameObject = Curve.CreateCurve(x, n, "Path");
+            Curve curve = motion.CurveGameObject.GetComponent<Curve>();
             
             for(int t = 0; t < n; t++){
                 Vector3 curPos = curve.GetPos((float)t / n);
@@ -112,8 +112,8 @@ namespace BVH {
             BVHPartObject lastObj = null;
             int lastFrameIdx = (int)frameIdx;
             int nextFrameIdx = (lastFrameIdx + 1) % frameCount;
-            Vector3 lastPos = curve.GetComponent<Curve>().GetPos((float)lastFrameIdx / frameCount);
-            Vector3 nextPos = curve.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
+            Vector3 lastPos = CurveGameObject.GetComponent<Curve>().GetPos((float)lastFrameIdx / frameCount);
+            Vector3 nextPos = CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
             for(int i = 0; i < obj.ChannelDatas.Count; i++){
                 var partObj = obj.ChannelDatas[i].Item1;
                 int posAndRotIdx = obj.ChannelDatas[i].Item2;

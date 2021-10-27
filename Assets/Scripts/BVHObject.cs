@@ -6,16 +6,21 @@ using UnityEngine.Assertions;
 
 
 namespace BVH {
-    class BVHObject{
+    public class BVHObject: MonoBehaviour{
         public BVHPartObject Root;
         BVHMotion Motion;
         float time = 0;
-        
         public List<Tuple<BVHPartObject, int>> ChannelDatas = new List<Tuple<BVHPartObject, int>>();
 
-        public BVHObject(string filename){
-            LoadFile(filename);
+        public static GameObject CreateBVHObject(string filename) {
+            GameObject gameObject = new GameObject();
+            var filenameArr = filename.Split('\\');
+            gameObject.name = filenameArr[filenameArr.Length - 1].Split('.')[0];
+            var bvhObject = gameObject.AddComponent<BVHObject>();
+            bvhObject.LoadFile(filename);
+            return gameObject;
         }
+
         public void LoadFile(string filename) {
             string bvhStrData = System.IO.File.ReadAllText(filename);
             Read(bvhStrData);
@@ -27,9 +32,11 @@ namespace BVH {
             Utility.IterData.CheckAndNext(ref bvhDataIter, "HIERARCHY");
             Utility.IterData.CompareAndNext(ref bvhDataIter, "ROOT");
             Root = BVHPartObject.ReadPart(ref bvhDataIter, this);
+            Root.transform.parent = transform;
             RenamePart();
             Utility.IterData.CompareAndNext(ref bvhDataIter, "MOTION");
             Motion = BVHMotion.readMotion(ref bvhDataIter, this);
+            Motion.CurveGameObject.transform.parent = transform;
             Motion.FitPathCurve();
         }
         
@@ -121,6 +128,13 @@ namespace BVH {
                 }
             }
         }
+        void Update()
+        {
+            if(Root){
+                ApplyFrame(Time.deltaTime);
+            }
+        }
+
     }
 
 }

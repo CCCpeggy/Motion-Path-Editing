@@ -59,10 +59,10 @@ namespace BVH {
                         var childObj = ReadPart(ref bvhDataIter, obj, partObject);
                         break;
                     case "End":
-                        var endObj = BVHPartObject.CreateGameObject("end", partObject);
                         Utility.IterData.CheckAndNext(ref bvhDataIter, "Site");
                         Utility.IterData.CheckAndNext(ref bvhDataIter, "{");
                         Utility.IterData.CheckAndNext(ref bvhDataIter, "OFFSET");
+                        var endObj = BVHPartObject.CreateGameObject("End", partObject);
                         endObj.Offset = Utility.IterData.GetVec3AndNext(ref bvhDataIter);
                         Utility.IterData.CheckAndNext(ref bvhDataIter, "}");
                         break;

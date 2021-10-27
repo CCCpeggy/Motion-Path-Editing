@@ -99,8 +99,6 @@ namespace BVH {
                 else if (!leftLeg && part.Offset.x > 0){
                     leftLeg = true;
                     part.name = "LeftUpLeg";
-                    Debug.Log(part.Child.Count);
-                    Debug.Log(part.Child[0].name);
                     Assert.IsTrue(part.Child.Count == 1);
                     part.Child[0].name = "LeftLowLeg";
                     Assert.IsTrue(part.Child[0].Child.Count == 1);

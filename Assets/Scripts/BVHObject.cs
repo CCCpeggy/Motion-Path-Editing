@@ -8,7 +8,7 @@ using UnityEngine.Assertions;
 namespace BVH {
     public class BVHObject: MonoBehaviour{
         public BVHPartObject Root;
-        BVHMotion Motion;
+        public BVHMotion Motion;
         float time = 0;
         public List<Tuple<BVHPartObject, int>> ChannelDatas = new List<Tuple<BVHPartObject, int>>();
 

@@ -8,7 +8,7 @@ using UnityEngine.Assertions;
 
 
 namespace BVH {
-    class BVHMotion{
+    public class BVHMotion{
         private int frameCount;
         public int FrameCount{
             get{

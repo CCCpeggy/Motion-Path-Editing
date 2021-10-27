@@ -66,8 +66,8 @@ namespace BVH {
                     for (int j = 0; j < 4; j++) {
                         A[i, j] += B[i] * B[j];
                     }
-                    b[i, 0] += B[i] * motion.motionData[i, 0];
-                    b[i, 1] += B[i] * motion.motionData[i, 2];
+                    b[i, 0] += B[i] * motion.motionData[t, 0];
+                    b[i, 1] += B[i] * motion.motionData[t, 2];
                 }
             }
             var x = A.Solve(b);

@@ -11,7 +11,7 @@ namespace BVH {
         public BVHMotion Motion;
         float time = 0;
         public List<Tuple<BVHPartObject, int>> ChannelDatas = new List<Tuple<BVHPartObject, int>>();
-
+        public BVHPartObject[] Part;
         public static GameObject CreateBVHObject(string filename) {
             GameObject gameObject = new GameObject();
             var filenameArr = filename.Split('\\');
@@ -20,10 +20,79 @@ namespace BVH {
             bvhObject.LoadFile(filename);
             return gameObject;
         }
-
         public void LoadFile(string filename) {
             string bvhStrData = System.IO.File.ReadAllText(filename);
             Read(bvhStrData);
+        }
+        public BVHObject Clone(){
+            GameObject newObj = new GameObject();
+            var newBVH = newObj.AddComponent<BVHObject>();
+            newBVH.Root = Root.Clone();
+            newBVH.Root.transform.parent = newObj.transform;
+            newBVH.RenamePart();
+            newBVH.Motion = Motion.Clone();
+            newBVH.Motion.CurveGameObject.transform.parent = newObj.transform;
+            newBVH.time = time;
+            foreach(var data in ChannelDatas) {
+                var part = newBVH.Part[GetPartIdxByName(data.Item1.name)];
+                newBVH.ChannelDatas.Add(new Tuple<BVHPartObject, int>(part, data.Item2));
+            }
+            return newBVH;
+        }
+        public static int GetPartIdxByName(string name){
+            
+            switch(name){
+                case "Hips":
+                    return 0;
+                case "Chest":
+                    return 1;
+                case "Neck":
+                    return 2;
+                case "Head":
+                    return 3;
+                case "LeftCollar":
+                    return 4;
+                case "LeftUpArm":
+                    return 5;
+                case "LeftLowArm":
+                    return 6;
+                case "LeftHand":
+                    return 7;
+                case "RightCollar":
+                    return 8;
+                case "RightUpArm":
+                    return 9;
+                case "RightLowArm":
+                    return 10;
+                case "RightHand":
+                    return 11;
+                case "LeftUpLeg":
+                    return 12;
+                case "LeftLowLeg":
+                    return 13;
+                case "LeftFoot":
+                    return 14;
+                case "RightUpLeg":
+                    return 15;
+                case "RightLowLeg":
+                    return 16;
+                case "RightFoot":
+                    return 17;
+                default:
+                    Assert.IsTrue(false);
+                    return -1;
+            }
+        }
+        public void ResetChannel() {
+            ChannelDatas = new List<Tuple<BVHPartObject, int>>();
+            ChannelDatas.Add(new Tuple<BVHPartObject, int>(Root, 3));
+            ChannelDatas.Add(new Tuple<BVHPartObject, int>(Root, 4));
+            ChannelDatas.Add(new Tuple<BVHPartObject, int>(Root, 5));
+            for (int i = 0; i < 18; i++) {
+                ChannelDatas.Add(new Tuple<BVHPartObject, int>(Part[i], 2));
+                ChannelDatas.Add(new Tuple<BVHPartObject, int>(Part[i], 0));
+                ChannelDatas.Add(new Tuple<BVHPartObject, int>(Part[i], 1));
+            }
         }
         public void Read(string bvhStrData){
             var bvhDataIter = BVH.Utility.SplitString(bvhStrData).GetEnumerator();
@@ -36,10 +105,9 @@ namespace BVH {
             RenamePart();
             Utility.IterData.CompareAndNext(ref bvhDataIter, "MOTION");
             Motion = BVHMotion.readMotion(ref bvhDataIter, this);
+            Motion.FitPathCurve(this);
             Motion.CurveGameObject.transform.parent = transform;
-            Motion.FitPathCurve();
         }
-        
         public void UpdateLines(BVHPartObject partObject=null){
             if (partObject == null) partObject = Root;
             foreach(var childObj in partObject.Child){
@@ -48,6 +116,9 @@ namespace BVH {
             partObject.UpdateSingleLine();
         }
 
+        public void ApplyFrameByIdx(float frameIdx) {
+            Motion.ApplyFrame(frameIdx, this);
+        }
         public void ApplyFrame(float deltaTime) {
             time += deltaTime;
             float frameTime = time / Motion.FrameTime;
@@ -56,45 +127,61 @@ namespace BVH {
         }
 
         public void RenamePart() {
+            Part = new BVHPartObject[] {
+                null, null, null, null, null, null, null, null, null, 
+                null, null, null, null, null, null, null, null, null
+            };
             Root.name = "Hips";
+            Part[0] = Root;
             bool chest = false, leftLeg = false, rightLeg = false;
             Assert.IsTrue(Root.Child.Count == 3);
             foreach(var part in Root.Child) {
                 if (!chest && part.Offset.y > 0 && part.Offset.x <= 0){
                     chest = true;
                     part.name = "Chest";
+                    Part[1] = part;
                     Assert.IsTrue(part.Child.Count == 3);
                     bool leftCollar = false, rightCollar = false, neck = false;
                     foreach(var part2 in part.Child) {
                         if (!neck && part2.Offset.x == 0 ) {
                             neck = true;
                             part2.name = "Neck";
+                            Part[2] = part2;
                             Assert.IsTrue(part2.Child.Count == 1);
                             part2.Child[0].name = "Head";
+                            Part[3] = part2.Child[0];
                             Assert.IsTrue(part2.Child[0].Child.Count == 1);
                             Assert.IsTrue(part2.Child[0].Child[0].name == "End");
                         }
                         else if (!leftCollar && part2.Offset.x > 0){
                             leftCollar = true;
                             part2.name = "LeftCollar";
+                            Part[4] = part2;
                             Assert.IsTrue(part2.Child.Count == 1);
                             part2.Child[0].name = "LeftUpArm";
+                            Part[5] = part2.Child[0];
                             Assert.IsTrue(part2.Child[0].Child.Count == 1);
                             part2.Child[0].Child[0].name = "LeftLowArm";
+                            Part[6] = part2.Child[0].Child[0];
                             Assert.IsTrue(part2.Child[0].Child[0].Child.Count == 1);
                             part2.Child[0].Child[0].Child[0].name = "LeftHand";
+                            Part[7] = part2.Child[0].Child[0].Child[0];
                             Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child.Count == 1);
                             Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child[0].name == "End");
                         }
                         else if (!rightCollar && part2.Offset.x < 0){
                             rightCollar = true;
                             part2.name = "RightCollar";
+                            Part[8] = part2;
                             Assert.IsTrue(part2.Child.Count == 1);
                             part2.Child[0].name = "RightUpArm";
+                            Part[9] = part2.Child[0];
                             Assert.IsTrue(part2.Child[0].Child.Count == 1);
                             part2.Child[0].Child[0].name = "RightLowArm";
+                            Part[10] = part2.Child[0].Child[0];
                             Assert.IsTrue(part2.Child[0].Child[0].Child.Count == 1);
                             part2.Child[0].Child[0].Child[0].name = "RightHand";
+                            Part[11] = part2.Child[0].Child[0].Child[0];
                             Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child.Count == 1);
                             Assert.IsTrue(part2.Child[0].Child[0].Child[0].Child[0].name == "End");
                         }
@@ -106,20 +193,26 @@ namespace BVH {
                 else if (!leftLeg && part.Offset.x > 0){
                     leftLeg = true;
                     part.name = "LeftUpLeg";
+                    Part[12] = part;
                     Assert.IsTrue(part.Child.Count == 1);
                     part.Child[0].name = "LeftLowLeg";
+                    Part[13] = part.Child[0];
                     Assert.IsTrue(part.Child[0].Child.Count == 1);
                     part.Child[0].Child[0].name = "LeftFoot";
+                    Part[14] = part.Child[0].Child[0];
                     Assert.IsTrue(part.Child[0].Child[0].Child.Count == 1);
                     Assert.IsTrue(part.Child[0].Child[0].Child[0].name == "End");
                 }
                 else if (!rightLeg && part.Offset.x < 0){
                     rightLeg = true;
                     part.name = "RightUpLeg";
+                    Part[15] = part;
                     Assert.IsTrue(part.Child.Count == 1);
                     part.Child[0].name = "RightLowLeg";
+                    Part[16] = part.Child[0];
                     Assert.IsTrue(part.Child[0].Child.Count == 1);
                     part.Child[0].Child[0].name = "RightFoot";
+                    Part[17] = part.Child[0].Child[0];
                     Assert.IsTrue(part.Child[0].Child[0].Child.Count == 1);
                     Assert.IsTrue(part.Child[0].Child[0].Child[0].name == "End");
                 }
@@ -130,8 +223,8 @@ namespace BVH {
         }
         void Update()
         {
-            if(Root){
-                ApplyFrame(Time.deltaTime);
+            if(Root && gameObject.activeSelf){
+                // ApplyFrame(Time.deltaTime);
             }
         }
 

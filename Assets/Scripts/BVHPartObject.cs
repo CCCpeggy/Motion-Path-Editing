@@ -3,13 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-
 namespace BVH {
     public class BVHPartObject: MonoBehaviour{
-        static Vector3 empty = new Vector3(0, 0, 0);
         public Vector3 Offset = new Vector3();
         public List<BVHPartObject> Child = new List<BVHPartObject>();
         public BVHPartObject Parent = null;
+        public BVHPartObject Clone(BVHPartObject parentObject=null){
+            BVHPartObject newPart = BVHPartObject.CreateGameObject(name, parentObject);
+            newPart.Offset = Offset;
+            foreach(var child in Child) {
+                child.Clone(newPart);
+            }
+            return newPart;
+        }
 
         public static BVHPartObject ReadPart(ref IEnumerator<string> bvhDataIter, BVHObject obj, BVHPartObject parentObject=null) {
             string partName = Utility.IterData.GetAndNext(ref bvhDataIter);

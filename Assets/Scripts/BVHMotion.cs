@@ -21,9 +21,17 @@ namespace BVH {
                 return frameTime;
             }
         }
-        private float[, ] motionData;
+        public float[, ] motionData;
         public GameObject CurveGameObject;
-
+        public BVHMotion Clone(){
+            BVHMotion bVHMotion = new BVHMotion();
+            bVHMotion.frameCount = frameCount;
+            bVHMotion.frameTime = frameTime;
+            bVHMotion.motionData = motionData.Clone() as float[,];
+            Debug.Log(bVHMotion);
+            bVHMotion.CurveGameObject = CurveGameObject.GetComponent<Curve>().Clone().gameObject;
+            return bVHMotion;
+        }
         public static BVHMotion readMotion(ref IEnumerator<string> bvhDataIter, BVHObject obj) {
             BVHMotion motion = new BVHMotion();
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Frames:");
@@ -38,8 +46,11 @@ namespace BVH {
                     motion.motionData[i, j] = num;
                 }
             }
-            
-            int n = motion.frameCount;
+            return motion;
+        }
+
+        public void FitPathCurve(BVHObject obj) {
+            int n = frameCount;
 
             int xIdx=-1, zIdx=-1;
             for(int i = 0; i < obj.ChannelDatas.Count; i++){
@@ -50,22 +61,6 @@ namespace BVH {
                     if (posAndRotIdx == 5) zIdx = i;
                 }
             }
-            // Assert.IsTrue(xIdx >= 0);
-            // Assert.IsTrue(zIdx >= 0);
-
-            // 讓曲線的每一段是以距離去切割
-            // List<double> tmp=new List<double>();
-            // double d = 0;
-            // tmp.Add(0);
-            // for(int i = 0; i < n-1; i++){
-            //     Vector2 v1 = new Vector2(motion.motionData[i, 0],  motion.motionData[i, 2]);
-            //     Vector2 v2 = new Vector2(motion.motionData[i+1, 0],  motion.motionData[i+1, 2]);
-            //     d += Vector2.Distance(v1, v2);
-            //     tmp.Add(d);
-            // }
-            // for(int i = 0; i < n; i++){
-            //     tmp[i] /= d;
-            // }
 
             Matrix<double> A = new DenseMatrix(4, 4);
             Matrix<double> b = new DenseMatrix(4, 2);
@@ -82,30 +77,23 @@ namespace BVH {
                         A[i, j] += B[i] * B[j];
                     }
                     if (xIdx >= 0)
-                        b[i, 0] += B[i] * motion.motionData[t, xIdx];
+                        b[i, 0] += B[i] * motionData[t, xIdx];
                     if (zIdx >= 0)
-                        b[i, 1] += B[i] * motion.motionData[t, zIdx];
+                        b[i, 1] += B[i] * motionData[t, zIdx];
                 }
             }
             var x = A.Solve(b);
-
-            // Debug.Log(A);
-            // Debug.Log(b);
-            // Debug.Log(x);
             
-            motion.CurveGameObject = Curve.CreateCurve(x, n, "Path");
-            Curve curve = motion.CurveGameObject.GetComponent<Curve>();
+            CurveGameObject = Curve.CreateCurve(x, n, "Path");
+            Curve curve = CurveGameObject.GetComponent<Curve>();
             
             for(int t = 0; t < n; t++){
                 Vector3 curPos = curve.GetPos((float)t / n);
                 if (xIdx >= 0)
-                    motion.motionData[t, xIdx] -= curPos.x;
+                    motionData[t, xIdx] -= curPos.x;
                 if (zIdx >= 0)
-                    motion.motionData[t, zIdx] -= curPos.z;
+                    motionData[t, zIdx] -= curPos.z;
             }
-
-            return motion;
-            
         }
 
         public void ApplyFrame(float frameIdx, BVHObject obj) {
@@ -135,9 +123,47 @@ namespace BVH {
             }
             obj.UpdateLines();
         }
-    
-        public void FitPathCurve() {
-            
+        public void ResetMotionInfo(int frameCount, float frameTime) {
+            this.frameCount = frameCount;
+            this.frameTime = frameTime;
+            this.motionData = new float[frameCount, 57];
+        }
+        public float getMotion(float frameIdx, int valueIdx, Tuple<BVHPartObject, int> chData) {
+            int previousFrameIdx = (int)frameIdx;
+            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
+            float lastMotionValue = motionData[previousFrameIdx, valueIdx];
+            float nextMotionValue = motionData[nextFrameIdx, valueIdx];
+            var partObj = chData.Item1;
+            int posAndRotIdx = chData.Item2;
+            if (partObj.Parent == null && posAndRotIdx >= 3) {
+                Vector3 lastPos = CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
+                Vector3 nextPos = CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
+                lastMotionValue += lastPos[posAndRotIdx - 3];
+                nextMotionValue += nextPos[posAndRotIdx - 3];
+            }
+            float alpha = frameIdx - previousFrameIdx;
+            return Utility.GetAngleAvg(lastMotionValue, nextMotionValue, alpha);
+        }
+        public void ResetMotionFrame(int frameIdx, ref BVHPartObject[] Part) {
+            Vector3 curPos = CurveGameObject.GetComponent<Curve>().GetPos((float)frameIdx / FrameCount);
+            motionData[frameIdx, 0] = Part[0].transform.position.x - curPos.x;
+            motionData[frameIdx, 1] = Part[0].transform.position.y;
+            motionData[frameIdx, 2] = Part[0].transform.position.z - curPos.z;
+            for(int i = 0; i < 18; i++) {
+                if(i==0)Debug.Log(Part[i].transform.localRotation);
+                float y = Part[i].transform.localRotation.y;
+                Part[i].transform.localRotation *= Quaternion.Euler(0, -y, 0);
+                float x = Part[i].transform.localRotation.x;
+                Part[i].transform.localRotation *= Quaternion.Euler(-x, 0, 0);
+                float z = Part[i].transform.localRotation.z;
+                Part[i].transform.localRotation *= Quaternion.Euler(0, 0, -z);
+                motionData[frameIdx, i * 3 + 0] = z * Mathf.Rad2Deg;
+                motionData[frameIdx, i * 3 + 1] = x * Mathf.Rad2Deg;
+                motionData[frameIdx, i * 3 + 2] = y * Mathf.Rad2Deg;
+                motionData[frameIdx, i * 3 + 0] = 0;
+                motionData[frameIdx, i * 3 + 1] = 0;
+                Debug.Log(x * Mathf.Rad2Deg+", "+y * Mathf.Rad2Deg+", "+z);
+            }
         }
     }
 

@@ -57,18 +57,15 @@ public class Curve : MonoBehaviour {
     Matrix<double> controlPoints;
     int n;
 
-    public static GameObject CreateCurve(Matrix<double> controlPoints, int n, string name="Curve") {
-        GameObject[] controlPointObjs = new GameObject[4];
-        GameObject[] controlPointLineObjs = new GameObject[4];
-        List<GameObject> curveLineObjs = new List<GameObject>();
+    public Curve Clone() {
+        return CreateCurve(controlPoints, n, name).GetComponent<Curve>();
+    }
 
-        var curve = new GameObject();
-        curve.name = name;
-
+    public void CreateCurvePointsAndLine() {
         // 畫控制點
         var controlPointsGroup = new GameObject();
         controlPointsGroup.name = "ControlPoints";
-        controlPointsGroup.transform.parent = curve.transform;
+        controlPointsGroup.transform.parent = transform;
         for (int i = 0; i < 4; i++) {
             GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             sphere.transform.position = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);
@@ -79,7 +76,7 @@ public class Curve : MonoBehaviour {
         // 將控制點之間連線
         var controlPointLines = new GameObject();
         controlPointLines.name = "ControlPointLines";
-        controlPointLines.transform.parent = curve.transform;
+        controlPointLines.transform.parent = transform;
         Vector3 last = new Vector3((float)controlPoints[3, 0], 0, (float)controlPoints[3, 1]);
         for (int i = 0; i < 4; i++) {
             Vector3 p = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);;
@@ -92,7 +89,7 @@ public class Curve : MonoBehaviour {
         // 畫曲線
         var curveLineGroup = new GameObject();
         curveLineGroup.name = "CurveLineGroup";
-        curveLineGroup.transform.parent = curve.transform;
+        curveLineGroup.transform.parent = transform;
         int count = 0;
         double step=1;
         for(double i=0; i < n;i += step){
@@ -101,14 +98,17 @@ public class Curve : MonoBehaviour {
             GameObject line = CreateLine(last, p, "line_" + count++);
             line.transform.parent = curveLineGroup.transform;
             curveLineObjs.Add(line);
-        }
+        }   
+    }
+
+    public static GameObject CreateCurve(Matrix<double> controlPoints, int n, string name="Curve") {
+        var curve = new GameObject();
+        curve.name = name;
 
         Curve curveObj = curve.AddComponent<Curve>();
-        curveObj.controlPointObjs = controlPointObjs;
-        curveObj.controlPointLineObjs = controlPointLineObjs;
-        curveObj.curveLineObjs = curveLineObjs;
         curveObj.controlPoints = controlPoints;
         curveObj.n = n;
+        curveObj.CreateCurvePointsAndLine();
 
         return curve;
     }

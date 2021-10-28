@@ -110,9 +110,9 @@ namespace BVH {
 
         public void ApplyFrame(float frameIdx, BVHObject obj) {
             BVHPartObject lastObj = null;
-            int lastFrameIdx = (int)frameIdx;
-            int nextFrameIdx = (lastFrameIdx + 1) % frameCount;
-            Vector3 lastPos = CurveGameObject.GetComponent<Curve>().GetPos((float)lastFrameIdx / frameCount);
+            int previousFrameIdx = (int)frameIdx;
+            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
+            Vector3 lastPos = CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
             Vector3 nextPos = CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
             for(int i = 0; i < obj.ChannelDatas.Count; i++){
                 var partObj = obj.ChannelDatas[i].Item1;
@@ -123,13 +123,13 @@ namespace BVH {
                     partObj.transform.localPosition += partObj.Offset;
                     lastObj = partObj;
                 }
-                float lastMotionValue = motionData[lastFrameIdx, i];
+                float lastMotionValue = motionData[previousFrameIdx, i];
                 float nextMotionValue = motionData[nextFrameIdx, i];
                 if (partObj == obj.Root && posAndRotIdx >= 3) {
                     lastMotionValue += lastPos[posAndRotIdx - 3];
                     nextMotionValue += nextPos[posAndRotIdx - 3];
                 }
-                float alpha = frameIdx - lastFrameIdx;
+                float alpha = frameIdx - previousFrameIdx;
                 float thisMotionValue = Utility.GetAngleAvg(lastMotionValue, nextMotionValue, alpha);
                 partObj.setPosOrRot(posAndRotIdx, thisMotionValue);
             }

@@ -101,6 +101,20 @@ public class Curve : MonoBehaviour {
         }   
     }
 
+    // public void ReCreateCurvePointsAndLine() {
+    //     double step=1;
+    //     for(double i=curveLineObjs.Count - 1; i >= n;i -= step){
+    //     }
+
+    //     // 曲線
+    //     int count = 0;
+    //     for(double i=curveLineObjs.Count - 1; i < n;i += step){
+    //         GameObject line = CreateLine(Vector3.forward, Vector3.forward, "line_" + count++);
+    //         line.transform.parent = transform.chi.transform;
+    //         curveLineObjs.Add(line);
+    //     }
+    // }
+
     public static GameObject CreateCurve(Matrix<double> controlPoints, int n, string name="Curve") {
         var curve = new GameObject();
         curve.name = name;
@@ -111,6 +125,14 @@ public class Curve : MonoBehaviour {
         curveObj.CreateCurvePointsAndLine();
 
         return curve;
+    }
+
+    public void ReCreateCurve(Matrix<double> controlPoints, int n) {
+        GameObject.Destroy(this.GetComponent<Curve>());
+        Curve curveObj = gameObject.AddComponent<Curve>();
+        curveObj.controlPoints = controlPoints;
+        curveObj.n = n;
+        curveObj.CreateCurvePointsAndLine();
     }
 
     void Update() {

@@ -28,7 +28,6 @@ namespace BVH {
             bVHMotion.frameCount = frameCount;
             bVHMotion.frameTime = frameTime;
             bVHMotion.motionData = motionData.Clone() as float[,];
-            Debug.Log(bVHMotion);
             bVHMotion.CurveGameObject = CurveGameObject.GetComponent<Curve>().Clone().gameObject;
             return bVHMotion;
         }
@@ -83,7 +82,7 @@ namespace BVH {
                 }
             }
             var x = A.Solve(b);
-            
+
             CurveGameObject = Curve.CreateCurve(x, n, "Path");
             Curve curve = CurveGameObject.GetComponent<Curve>();
             
@@ -143,27 +142,6 @@ namespace BVH {
             }
             float alpha = frameIdx - previousFrameIdx;
             return Utility.GetAngleAvg(lastMotionValue, nextMotionValue, alpha);
-        }
-        public void ResetMotionFrame(int frameIdx, ref BVHPartObject[] Part) {
-            Vector3 curPos = CurveGameObject.GetComponent<Curve>().GetPos((float)frameIdx / FrameCount);
-            motionData[frameIdx, 0] = Part[0].transform.position.x - curPos.x;
-            motionData[frameIdx, 1] = Part[0].transform.position.y;
-            motionData[frameIdx, 2] = Part[0].transform.position.z - curPos.z;
-            for(int i = 0; i < 18; i++) {
-                if(i==0)Debug.Log(Part[i].transform.localRotation);
-                float y = Part[i].transform.localRotation.y;
-                Part[i].transform.localRotation *= Quaternion.Euler(0, -y, 0);
-                float x = Part[i].transform.localRotation.x;
-                Part[i].transform.localRotation *= Quaternion.Euler(-x, 0, 0);
-                float z = Part[i].transform.localRotation.z;
-                Part[i].transform.localRotation *= Quaternion.Euler(0, 0, -z);
-                motionData[frameIdx, i * 3 + 0] = z * Mathf.Rad2Deg;
-                motionData[frameIdx, i * 3 + 1] = x * Mathf.Rad2Deg;
-                motionData[frameIdx, i * 3 + 2] = y * Mathf.Rad2Deg;
-                motionData[frameIdx, i * 3 + 0] = 0;
-                motionData[frameIdx, i * 3 + 1] = 0;
-                Debug.Log(x * Mathf.Rad2Deg+", "+y * Mathf.Rad2Deg+", "+z);
-            }
         }
     }
 

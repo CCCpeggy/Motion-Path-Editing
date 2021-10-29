@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using UnityEngine.Assertions;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -9,6 +10,14 @@ namespace BVH {
         public static BVH.BVHObject Do(List<BVH.BVHObject> objs) {
             if(objs.Count == 0) return null;
             else if(objs.Count == 1) return objs[0].Clone();
+            
+            // for(int i = 1; i < objs.Count; i++) {
+            //     Assert.IsTrue(objs[0].ChannelDatas.Count == objs[i].ChannelDatas.Count);
+            //     for(int j = 0; j < objs[0].ChannelDatas.Count; j++) {
+            //         Assert.IsTrue(objs[0].ChannelDatas[j].Item1.name == objs[i].ChannelDatas[j].Item1.name);
+            //         Assert.IsTrue(objs[0].ChannelDatas[j].Item2 == objs[i].ChannelDatas[j].Item2);
+            //     }
+            // }
             for(int i = 0; i < objs.Count; i++) {
                 string name = objs[i].name + "_tmp";
                 objs[i] = objs[i].Clone();
@@ -20,22 +29,26 @@ namespace BVH {
             int minI = reference.Motion.FrameCount, maxI = 0;
             float sumFrameTime = reference.Motion.FrameTime;
             for(int i = 1; i < objs.Count; i++) {
-               var timewarp = CreateTimeWarp(reference, objs[i]);
-               timewarps.Add(timewarp);
-               if (timewarp[0].Item1 < minI) minI = timewarp[0].Item1;
-               if (timewarp[timewarp.Count-1].Item1 > maxI) maxI = timewarp[timewarp.Count-1].Item1;
-               sumFrameTime += objs[i].Motion.FrameTime;
+                var data = CreateTimeWarp(reference, objs[i]);
+                var timewarp = data.Item1;
+                var alinement = data.Item2;
+                timewarps.Add(timewarp);
+                if (timewarp[0].Item1 < minI) minI = timewarp[0].Item1;
+                if (timewarp[timewarp.Count-1].Item1 > maxI) maxI = timewarp[timewarp.Count-1].Item1;
+                sumFrameTime += objs[i].Motion.FrameTime;
             }
-            BVH.BVHObject blend = reference.Clone();
+            BVH.BVHObject blend = reference.Clone(false);
             blend.gameObject.name = "blend";
             blend.ResetChannel();
+            blend.Motion = new BVHMotion();
+            blend.Motion.ResetMotionInfo(maxI - minI + 1, sumFrameTime / objs.Count);
             int[, ] pareChxIdx = new int[objs.Count, blend.ChannelDatas.Count];
             for (int i = 0; i < blend.ChannelDatas.Count; i++) {
                 pareChxIdx[0, i] = i;
                 for (int j = 1; j < objs.Count; j++) {
                     for (int k = 0; k < blend.ChannelDatas.Count; k++) {
-                        if(blend.ChannelDatas[i].Item2 == objs[j].ChannelDatas[k].Item2) {
-                            if(blend.ChannelDatas[i].Item1.name == objs[j].ChannelDatas[k].Item1.name) {
+                        if(blend.ChannelDatas[i].Item1.name == objs[j].ChannelDatas[k].Item1.name) {
+                            if(blend.ChannelDatas[i].Item2 == objs[j].ChannelDatas[k].Item2) {
                                 pareChxIdx[j, i] = k;
                                 break;
                             }
@@ -43,44 +56,48 @@ namespace BVH {
                     }
                 }
             }
-            blend.Motion.ResetMotionInfo(maxI - minI + 1, sumFrameTime / objs.Count);
             for (int i = 0; i <= maxI - minI; i++) {
                 for (int j = 0; j < blend.ChannelDatas.Count; j++) {
                     int dataType = blend.ChannelDatas[j].Item2;
                     if (dataType < 3){
                         Vector2 sum = new Vector2();
-                        for (int k = 1; k < objs.Count; k++) {
-                            float ii = S(timewarps[k-1], i+minI);
+                        for (int k = 0; k < objs.Count; k++) {
+                            float ii = k == 0? i + minI: S(timewarps[k-1], i+minI);
                             int idx = pareChxIdx[k, j];
                             var partObj = objs[k].ChannelDatas[idx].Item1;
                             float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
                             sum += Utility.ConvertAngleToVec(angle);
                         }
-                        blend.Motion.motionData[0, j] = Utility.ConvertVecToAngle(sum / objs.Count);
+                        blend.Motion.motionData[i, j] = Utility.ConvertVecToAngle(sum / objs.Count);
                     }
                     else{
                         float sum = 0;
-                        for (int k = 1; k < objs.Count; k++) {
-                            float ii = S(timewarps[k-1], i+minI);
+                        for (int k = 0; k < objs.Count; k++) {
+                            float ii = k == 0? i + minI: S(timewarps[k-1], i+minI);
                             int idx = pareChxIdx[k, j];
                             var partObj = objs[k].ChannelDatas[idx].Item1;
                             float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
                             sum += objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
                         }
-                        blend.Motion.motionData[0, j] = sum / objs.Count;
+                        blend.Motion.motionData[i, j] = sum / objs.Count;
                     }
                 }
             }
-            blend.ApplyFrameByIdx(0);
+            blend.Motion.FitPathCurve(blend);
+            blend.Motion.CurveGameObject.transform.parent = blend.transform;
             blend.gameObject.SetActive(true);
+            for(int i = 0; i < objs.Count; i++) {
+                GameObject.Destroy(objs[i].gameObject);
+            }
             return blend;
         }
 
         public static float S(List<Tuple<int, int>> timewarp, int idx1) {
             return (float)timewarp.Where(x => x.Item1 == idx1).Select(x => x.Item2).Average();
         }
-        public static List<Tuple<int, int>> CreateTimeWarp(BVH.BVHObject o1, BVH.BVHObject o2) {
+        public static Tuple<List<Tuple<int, int>>, List<float[]>> CreateTimeWarp(BVH.BVHObject o1, BVH.BVHObject o2) {
             List<Tuple<int, int>> toO2Frame = new List<Tuple<int, int>>();
+            List<float[]> transform = new List<float[]>();
             int o1Count = o1.Motion.FrameCount;
             int o2Count = o2.Motion.FrameCount;
             Data[,] timewarp = new Data[o1Count, o2Count];
@@ -136,13 +153,14 @@ namespace BVH {
             i = lastI;
             j = lastJ;
             while (i >= 0 && j >= 0){
+                transform.Add(new float[]{timewarp[i, j].Theta, timewarp[i, j].X0, timewarp[i, j].Z0});
                 toO2Frame.Add(new Tuple<int, int>(i, j));
                 var tmp_timewarp = timewarp[i, j];
                 i = tmp_timewarp.PreviousI;
                 j = tmp_timewarp.PreviousJ;
             }
             toO2Frame.Reverse();
-            return toO2Frame;
+            return new Tuple<List<Tuple<int, int>>, List<float[]>>(toO2Frame, transform);
         }
 
         public class Data{

@@ -24,15 +24,17 @@ namespace BVH {
             string bvhStrData = System.IO.File.ReadAllText(filename);
             Read(bvhStrData);
         }
-        public BVHObject Clone(){
+        public BVHObject Clone(bool isMotion=true){
             GameObject newObj = new GameObject();
             var newBVH = newObj.AddComponent<BVHObject>();
             newBVH.Root = Root.Clone();
             newBVH.Root.transform.parent = newObj.transform;
             newBVH.RenamePart();
-            newBVH.Motion = Motion.Clone();
-            newBVH.Motion.CurveGameObject.transform.parent = newObj.transform;
-            newBVH.time = time;
+            if (isMotion) {
+                newBVH.Motion = Motion.Clone();
+                newBVH.Motion.CurveGameObject.transform.parent = newObj.transform;
+            }
+            // newBVH.time = time;
             foreach(var data in ChannelDatas) {
                 var part = newBVH.Part[GetPartIdxByName(data.Item1.name)];
                 newBVH.ChannelDatas.Add(new Tuple<BVHPartObject, int>(part, data.Item2));
@@ -224,7 +226,7 @@ namespace BVH {
         void Update()
         {
             if(Root && gameObject.activeSelf){
-                // ApplyFrame(Time.deltaTime);
+                ApplyFrame(Time.deltaTime);
             }
         }
 

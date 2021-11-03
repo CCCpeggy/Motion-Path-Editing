@@ -7,9 +7,9 @@ using System.Linq;
 
 namespace BVH {
     class Blend{
-        public static BVH.BVHObject Do(List<BVH.BVHObject> objs) {
-            if(objs.Count == 0) return null;
-            else if(objs.Count == 1) return objs[0].Clone();
+        public static BVH.BVHObject Do(List<BVH.BVHObject> blendObjs) {
+            if(blendObjs.Count == 0) return null;
+            else if(blendObjs.Count == 1) return blendObjs[0].Clone();
             
             // for(int i = 1; i < objs.Count; i++) {
             //     Assert.IsTrue(objs[0].ChannelDatas.Count == objs[i].ChannelDatas.Count);
@@ -18,23 +18,25 @@ namespace BVH {
             //         Assert.IsTrue(objs[0].ChannelDatas[j].Item2 == objs[i].ChannelDatas[j].Item2);
             //     }
             // }
-            for(int i = 0; i < objs.Count; i++) {
-                string name = objs[i].name + "_tmp";
-                objs[i] = objs[i].Clone();
-                objs[i].name = name;
+            List<BVH.BVHObject> objs = new List<BVH.BVHObject>();
+            for(int i = 0; i < blendObjs.Count; i++) {
+                objs.Add(blendObjs[i].Clone());
+                objs[i].name = blendObjs[i].name + "_tmp";
                 objs[i].gameObject.SetActive(false);
             }
             BVH.BVHObject reference = objs[0];
-            List<List<Tuple<int, int>>> timewarps = new List<List<Tuple<int, int>>>();
+            List<List<Tuple<int, float>>> timewarps = new List<List<Tuple<int, float>>>();
+            List<List<float[]>> alinements = new List<List<float[]>>();
             int minI = reference.Motion.FrameCount, maxI = 0;
             float sumFrameTime = reference.Motion.FrameTime;
             for(int i = 1; i < objs.Count; i++) {
                 var data = CreateTimeWarp(reference, objs[i]);
                 var timewarp = data.Item1;
-                var alinement = data.Item2;
                 timewarps.Add(timewarp);
                 if (timewarp[0].Item1 < minI) minI = timewarp[0].Item1;
                 if (timewarp[timewarp.Count-1].Item1 > maxI) maxI = timewarp[timewarp.Count-1].Item1;
+                var alinement = data.Item2;
+                alinements.Add(alinement);
                 sumFrameTime += objs[i].Motion.FrameTime;
             }
             BVH.BVHObject blend = reference.Clone(false);
@@ -57,12 +59,15 @@ namespace BVH {
                 }
             }
             for (int i = 0; i <= maxI - minI; i++) {
+                float sumX=0, sumZ=0;
+                int xIdx=-1, zIdx=-1;
                 for (int j = 0; j < blend.ChannelDatas.Count; j++) {
                     int dataType = blend.ChannelDatas[j].Item2;
                     if (dataType < 3){
                         Vector2 sum = new Vector2();
                         for (int k = 0; k < objs.Count; k++) {
-                            float ii = k == 0? i + minI: S(timewarps[k-1], i+minI);
+                            int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+                            float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
                             int idx = pareChxIdx[k, j];
                             var partObj = objs[k].ChannelDatas[idx].Item1;
                             float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
@@ -73,15 +78,58 @@ namespace BVH {
                     else{
                         float sum = 0;
                         for (int k = 0; k < objs.Count; k++) {
-                            float ii = k == 0? i + minI: S(timewarps[k-1], i+minI);
+                            int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+                            float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
                             int idx = pareChxIdx[k, j];
                             var partObj = objs[k].ChannelDatas[idx].Item1;
-                            float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
-                            sum += objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
+                            float pos = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
+                            if (k > 0 && dataType == 3) {
+                                sumX += pos * Mathf.Cos(alinements[k-1][x][0]);
+                                sumZ += pos * Mathf.Sin(alinements[k-1][x][0]);
+                                sumX += alinements[k-1][x][1];
+                                xIdx = j;
+                            }
+                            else if (k > 0 && dataType == 5) {
+                                sumX += pos * Mathf.Sin(alinements[k-1][x][0]);
+                                sumZ += pos * Mathf.Cos(alinements[k-1][x][0]);
+                                sumZ += alinements[k-1][x][2];
+                                zIdx = j;
+                            }
+                            else sum += pos;
                         }
-                        blend.Motion.motionData[i, j] = sum / objs.Count;
+                        blend.Motion.motionData[i, j] += sum / objs.Count;
                     }
                 }
+                if(xIdx >= 0) blend.Motion.motionData[i, xIdx] += sumX / objs.Count;
+                if(zIdx >= 0) blend.Motion.motionData[i, zIdx] += sumZ / objs.Count;
+                Debug.Log(blend.Motion.motionData[i, xIdx]);
+                float x0=0, z0=0;
+                Vector2 thetaVec = new Vector2();
+                for (int k = 0; k < objs.Count; k++) {
+                    if (k == 0) {
+                        thetaVec += new Vector2((float)1 / objs.Count, 0);
+                    }
+                    else{
+                        int x = i + minI - timewarps[k-1][0].Item1;
+                        thetaVec += Utility.ConvertAngleToVec(-alinements[k-1][x][0]) / objs.Count;
+                        x0 += -alinements[k-1][x][1] / objs.Count;
+                        z0 += -alinements[k-1][x][2] / objs.Count;
+                    }
+                }
+                Debug.Log(blend.Motion.motionData[i, xIdx]);
+                if(zIdx >= 0) 
+                    blend.Motion.motionData[i, xIdx] += x0;
+                if(zIdx >= 0) 
+                    blend.Motion.motionData[i, zIdx] += z0;
+                var theta = Utility.ConvertVecToAngle(thetaVec);
+                float tmpX = xIdx >= 0 ? blend.Motion.motionData[i, xIdx]: 0;
+                float tmpZ = zIdx >= 0 ? blend.Motion.motionData[i, zIdx]: 0;
+                Debug.Log(blend.Motion.motionData[i, xIdx]);
+                if(zIdx >= 0) 
+                    blend.Motion.motionData[i, xIdx] += tmpX * Mathf.Cos(theta) + tmpZ * Mathf.Sin(theta);
+                if(zIdx >= 0) 
+                    blend.Motion.motionData[i, zIdx] += tmpX * Mathf.Sin(theta) + tmpZ * Mathf.Cos(theta);
+                Debug.Log(blend.Motion.motionData[i, xIdx]);
             }
             blend.Motion.FitPathCurve(blend);
             blend.Motion.CurveGameObject.transform.parent = blend.transform;
@@ -95,9 +143,10 @@ namespace BVH {
         public static float S(List<Tuple<int, int>> timewarp, int idx1) {
             return (float)timewarp.Where(x => x.Item1 == idx1).Select(x => x.Item2).Average();
         }
-        public static Tuple<List<Tuple<int, int>>, List<float[]>> CreateTimeWarp(BVH.BVHObject o1, BVH.BVHObject o2) {
+
+        public static Tuple<List<Tuple<int, float>>, List<float[]>> CreateTimeWarp(BVH.BVHObject o1, BVH.BVHObject o2) {
             List<Tuple<int, int>> toO2Frame = new List<Tuple<int, int>>();
-            List<float[]> transform = new List<float[]>();
+            List<float[]> alinement = new List<float[]>();
             int o1Count = o1.Motion.FrameCount;
             int o2Count = o2.Motion.FrameCount;
             Data[,] timewarp = new Data[o1Count, o2Count];
@@ -153,14 +202,27 @@ namespace BVH {
             i = lastI;
             j = lastJ;
             while (i >= 0 && j >= 0){
-                transform.Add(new float[]{timewarp[i, j].Theta, timewarp[i, j].X0, timewarp[i, j].Z0});
+                alinement.Add(new float[]{timewarp[i, j].Theta, timewarp[i, j].X0, timewarp[i, j].Z0});
                 toO2Frame.Add(new Tuple<int, int>(i, j));
                 var tmp_timewarp = timewarp[i, j];
                 i = tmp_timewarp.PreviousI;
                 j = tmp_timewarp.PreviousJ;
             }
             toO2Frame.Reverse();
-            return new Tuple<List<Tuple<int, int>>, List<float[]>>(toO2Frame, transform);
+            List<Tuple<int, float>> newtoO2Frame = new List<Tuple<int, float>>();
+            List<float[]> newAlinement = new List<float[]>();
+            for(i=toO2Frame[0].Item1;i<=toO2Frame[toO2Frame.Count-1].Item1; i++) {
+                var idx = toO2Frame.Select((x, i) => new {i, x}).Where(x => x.x.Item1 == x.i).Select(x=>x.i).ToArray();
+                float theta=0, x0=0, z0=0;
+                for(j=0;j < idx.Length;j++){
+                    theta += alinement[j][0] / idx.Length;
+                    x0 += alinement[j][1] / idx.Length;
+                    z0 += alinement[j][2] / idx.Length;
+                }
+                newAlinement.Add(new float[]{theta, x0, z0});
+                newtoO2Frame.Add(new Tuple<int, float>(i, S(toO2Frame, i)));
+            }
+            return new Tuple<List<Tuple<int, float>>, List<float[]>>(newtoO2Frame, newAlinement);
         }
 
         public class Data{

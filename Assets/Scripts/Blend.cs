@@ -58,79 +58,79 @@ namespace BVH {
                     }
                 }
             }
-            for (int i = 0; i <= maxI - minI; i++) {
-                float sumX=0, sumZ=0;
-                int xIdx=-1, zIdx=-1;
-                for (int j = 0; j < blend.ChannelDatas.Count; j++) {
-                    int dataType = blend.ChannelDatas[j].Item2;
-                    if (dataType < 3){
-                        Vector2 sum = new Vector2();
-                        for (int k = 0; k < objs.Count; k++) {
-                            int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-                            float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
-                            int idx = pareChxIdx[k, j];
-                            var partObj = objs[k].ChannelDatas[idx].Item1;
-                            float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
-                            sum += Utility.ConvertAngleToVec(angle);
-                        }
-                        blend.Motion.motionData[i, j] = Utility.ConvertVecToAngle(sum / objs.Count);
-                    }
-                    else{
-                        float sum = 0;
-                        for (int k = 0; k < objs.Count; k++) {
-                            int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-                            float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
-                            int idx = pareChxIdx[k, j];
-                            var partObj = objs[k].ChannelDatas[idx].Item1;
-                            float pos = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
-                            if (k > 0 && dataType == 3) {
-                                sumX += pos * Mathf.Cos(alinements[k-1][x][0]);
-                                sumZ += pos * Mathf.Sin(alinements[k-1][x][0]);
-                                sumX += alinements[k-1][x][1];
-                                xIdx = j;
-                            }
-                            else if (k > 0 && dataType == 5) {
-                                sumX += pos * Mathf.Sin(alinements[k-1][x][0]);
-                                sumZ += pos * Mathf.Cos(alinements[k-1][x][0]);
-                                sumZ += alinements[k-1][x][2];
-                                zIdx = j;
-                            }
-                            else sum += pos;
-                        }
-                        blend.Motion.motionData[i, j] += sum / objs.Count;
-                    }
-                }
-                if(xIdx >= 0) blend.Motion.motionData[i, xIdx] += sumX / objs.Count;
-                if(zIdx >= 0) blend.Motion.motionData[i, zIdx] += sumZ / objs.Count;
-                Debug.Log(blend.Motion.motionData[i, xIdx]);
-                float x0=0, z0=0;
-                Vector2 thetaVec = new Vector2();
-                for (int k = 0; k < objs.Count; k++) {
-                    if (k == 0) {
-                        thetaVec += new Vector2((float)1 / objs.Count, 0);
-                    }
-                    else{
-                        int x = i + minI - timewarps[k-1][0].Item1;
-                        thetaVec += Utility.ConvertAngleToVec(-alinements[k-1][x][0]) / objs.Count;
-                        x0 += -alinements[k-1][x][1] / objs.Count;
-                        z0 += -alinements[k-1][x][2] / objs.Count;
-                    }
-                }
-                Debug.Log(blend.Motion.motionData[i, xIdx]);
-                if(zIdx >= 0) 
-                    blend.Motion.motionData[i, xIdx] += x0;
-                if(zIdx >= 0) 
-                    blend.Motion.motionData[i, zIdx] += z0;
-                var theta = Utility.ConvertVecToAngle(thetaVec);
-                float tmpX = xIdx >= 0 ? blend.Motion.motionData[i, xIdx]: 0;
-                float tmpZ = zIdx >= 0 ? blend.Motion.motionData[i, zIdx]: 0;
-                Debug.Log(blend.Motion.motionData[i, xIdx]);
-                if(zIdx >= 0) 
-                    blend.Motion.motionData[i, xIdx] += tmpX * Mathf.Cos(theta) + tmpZ * Mathf.Sin(theta);
-                if(zIdx >= 0) 
-                    blend.Motion.motionData[i, zIdx] += tmpX * Mathf.Sin(theta) + tmpZ * Mathf.Cos(theta);
-                Debug.Log(blend.Motion.motionData[i, xIdx]);
-            }
+            // for (int i = 0; i <= maxI - minI; i++) {
+            //     float sumX=0, sumZ=0;
+            //     int xIdx=-1, zIdx=-1;
+            //     for (int j = 0; j < blend.ChannelDatas.Count; j++) {
+            //         int dataType = blend.ChannelDatas[j].Item2;
+            //         if (dataType < 3){
+            //             Vector2 sum = new Vector2();
+            //             for (int k = 0; k < objs.Count; k++) {
+            //                 int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+            //                 float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
+            //                 int idx = pareChxIdx[k, j];
+            //                 var partObj = objs[k].ChannelDatas[idx].Item1;
+            //                 float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
+            //                 sum += Utility.ConvertAngleToVec(angle);
+            //             }
+            //             blend.Motion.motionData[i, j] = Utility.ConvertVecToAngle(sum / objs.Count);
+            //         }
+            //         else{
+            //             float sum = 0;
+            //             for (int k = 0; k < objs.Count; k++) {
+            //                 int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+            //                 float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
+            //                 int idx = pareChxIdx[k, j];
+            //                 var partObj = objs[k].ChannelDatas[idx].Item1;
+            //                 float pos = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
+            //                 if (k > 0 && dataType == 3) {
+            //                     sumX += pos * Mathf.Cos(alinements[k-1][x][0]);
+            //                     sumZ += pos * Mathf.Sin(alinements[k-1][x][0]);
+            //                     sumX += alinements[k-1][x][1];
+            //                     xIdx = j;
+            //                 }
+            //                 else if (k > 0 && dataType == 5) {
+            //                     sumX += pos * Mathf.Sin(alinements[k-1][x][0]);
+            //                     sumZ += pos * Mathf.Cos(alinements[k-1][x][0]);
+            //                     sumZ += alinements[k-1][x][2];
+            //                     zIdx = j;
+            //                 }
+            //                 else sum += pos;
+            //             }
+            //             blend.Motion.motionData[i, j] += sum / objs.Count;
+            //         }
+            //     }
+            //     if(xIdx >= 0) blend.Motion.motionData[i, xIdx] += sumX / objs.Count;
+            //     if(zIdx >= 0) blend.Motion.motionData[i, zIdx] += sumZ / objs.Count;
+            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
+            //     float x0=0, z0=0;
+            //     Vector2 thetaVec = new Vector2();
+            //     for (int k = 0; k < objs.Count; k++) {
+            //         if (k == 0) {
+            //             thetaVec += new Vector2((float)1 / objs.Count, 0);
+            //         }
+            //         else{
+            //             int x = i + minI - timewarps[k-1][0].Item1;
+            //             thetaVec += Utility.ConvertAngleToVec(-alinements[k-1][x][0]) / objs.Count;
+            //             x0 += -alinements[k-1][x][1] / objs.Count;
+            //             z0 += -alinements[k-1][x][2] / objs.Count;
+            //         }
+            //     }
+            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
+            //     if(zIdx >= 0) 
+            //         blend.Motion.motionData[i, xIdx] += x0;
+            //     if(zIdx >= 0) 
+            //         blend.Motion.motionData[i, zIdx] += z0;
+            //     var theta = Utility.ConvertVecToAngle(thetaVec);
+            //     float tmpX = xIdx >= 0 ? blend.Motion.motionData[i, xIdx]: 0;
+            //     float tmpZ = zIdx >= 0 ? blend.Motion.motionData[i, zIdx]: 0;
+            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
+            //     if(zIdx >= 0) 
+            //         blend.Motion.motionData[i, xIdx] += tmpX * Mathf.Cos(theta) + tmpZ * Mathf.Sin(theta);
+            //     if(zIdx >= 0) 
+            //         blend.Motion.motionData[i, zIdx] += tmpX * Mathf.Sin(theta) + tmpZ * Mathf.Cos(theta);
+            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
+            // }
             blend.Motion.FitPathCurve(blend);
             blend.Motion.CurveGameObject.transform.parent = blend.transform;
             blend.gameObject.SetActive(true);

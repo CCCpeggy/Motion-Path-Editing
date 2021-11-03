@@ -74,6 +74,11 @@ namespace BVH {
             return angle;
         }
 
+        public static Quaternion GetQuaternionAvg(Quaternion a1, Quaternion a2, float alpha) {
+            return Quaternion.Lerp(a1, a2, alpha);
+            ;
+        }
+
         public class IterData {
 
             public static string GetAndNext(ref IEnumerator<string> iter) {

@@ -37,6 +37,7 @@ namespace BVH {
             BVHMotion bVHMotion = new BVHMotion();
             bVHMotion.frameCount = frameCount;
             bVHMotion.frameTime = frameTime;
+            bVHMotion.motionData = new List<Frame>();
             for(int i = 0; i < motionData.Count; i++)  
                 bVHMotion.motionData.Add(motionData[i].Clone());
             bVHMotion.CurveGameObject = CurveGameObject.GetComponent<Curve>().Clone().gameObject;
@@ -148,25 +149,28 @@ namespace BVH {
         public void ResetMotionInfo(int frameCount, float frameTime) {
             this.frameCount = frameCount;
             this.frameTime = frameTime;
-            this.motionData.Clear();
+            if (this.motionData == null)
+                this.motionData = new List<Frame>();
+            else
+                this.motionData.Clear();
         }
-        public float getMotion(float frameIdx, int valueIdx, Tuple<BVHPartObject, int> chData) {
-            // int previousFrameIdx = (int)frameIdx;
-            // int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
-            // float previousMotionValue = motionData[previousFrameIdx, valueIdx];
-            // float nextMotionValue = motionData[nextFrameIdx, valueIdx];
-            // var partObj = chData.Item1;
-            // int posAndRotIdx = chData.Item2;
-            // if (partObj.Parent == null && posAndRotIdx >= 3) {
-            //     Vector3 previousPos = CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
-            //     Vector3 nextPos = CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
-            //     previousMotionValue += previousPos[posAndRotIdx - 3];
-            //     nextMotionValue += nextPos[posAndRotIdx - 3];
-            // }
-            // float alpha = frameIdx - previousFrameIdx;
-            // return Utility.GetAngleAvg(previousMotionValue, nextMotionValue, alpha);
-            return 0;
+        public Vector3 getFramePosition(float frameIdx) {
+            int previousFrameIdx = (int)frameIdx;
+            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
+            Vector3 previous = motionData[previousFrameIdx].Position;
+            Vector3 next = motionData[nextFrameIdx].Position;
+            previous += CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
+            next += CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
+            float alpha = frameIdx - previousFrameIdx;
+            return previous * (1 - alpha) + next * alpha;
+        }
+        public Quaternion getFrameQuaternion(float frameIdx, int partIdx) {
+            int previousFrameIdx = (int)frameIdx;
+            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
+            Quaternion previous = motionData[previousFrameIdx].Rotation[partIdx];
+            Quaternion next = motionData[nextFrameIdx].Rotation[partIdx];
+            float alpha = frameIdx - previousFrameIdx;
+            return Utility.GetQuaternionAvg(previous, next, alpha);
         }
     }
-
 }

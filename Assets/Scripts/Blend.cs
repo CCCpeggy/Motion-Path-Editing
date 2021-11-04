@@ -11,13 +11,6 @@ namespace BVH {
             if(blendObjs.Count == 0) return null;
             else if(blendObjs.Count == 1) return blendObjs[0].Clone();
             
-            // for(int i = 1; i < objs.Count; i++) {
-            //     Assert.IsTrue(objs[0].ChannelDatas.Count == objs[i].ChannelDatas.Count);
-            //     for(int j = 0; j < objs[0].ChannelDatas.Count; j++) {
-            //         Assert.IsTrue(objs[0].ChannelDatas[j].Item1.name == objs[i].ChannelDatas[j].Item1.name);
-            //         Assert.IsTrue(objs[0].ChannelDatas[j].Item2 == objs[i].ChannelDatas[j].Item2);
-            //     }
-            // }
             List<BVH.BVHObject> objs = new List<BVH.BVHObject>();
             for(int i = 0; i < blendObjs.Count; i++) {
                 objs.Add(blendObjs[i].Clone());
@@ -41,96 +34,51 @@ namespace BVH {
             }
             BVH.BVHObject blend = reference.Clone(false);
             blend.gameObject.name = "blend";
-            blend.ResetChannel();
             blend.Motion = new BVHMotion();
             blend.Motion.ResetMotionInfo(maxI - minI + 1, sumFrameTime / objs.Count);
-            int[, ] pareChxIdx = new int[objs.Count, blend.ChannelDatas.Count];
-            for (int i = 0; i < blend.ChannelDatas.Count; i++) {
-                pareChxIdx[0, i] = i;
-                for (int j = 1; j < objs.Count; j++) {
-                    for (int k = 0; k < blend.ChannelDatas.Count; k++) {
-                        if(blend.ChannelDatas[i].Item1.name == objs[j].ChannelDatas[k].Item1.name) {
-                            if(blend.ChannelDatas[i].Item2 == objs[j].ChannelDatas[k].Item2) {
-                                pareChxIdx[j, i] = k;
-                                break;
-                            }
-                        }
+            
+            for (int i = 0; i <= maxI - minI; i++) {
+                BVHMotion.Frame frame = new BVHMotion.Frame();
+                for (int j = 0; j < 18; j++) {
+                    for (int k = 0; k < objs.Count; k++) {
+                        int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+                        float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
+                        var objRot = objs[k].Motion.getFrameQuaternion(ii, k);
+                        frame.Rotation[j] = Utility.GetQuaternionAvg(objs[k].Motion.motionData[i].Rotation[j], objRot, 1/(k+1));
                     }
                 }
+                
+                float x0=0, z0=0;
+                Vector2 thetaVec = new Vector2();
+                for (int k = 0; k < objs.Count; k++) {
+                    int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
+                    float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
+                    Vector3 pos = objs[k].Motion.getFramePosition(ii);
+                    if (k == 0) {
+                        frame.Position = pos;
+                        thetaVec += new Vector2((float)1 / objs.Count, 0);
+                    }
+                    else {
+                        float theta_k = alinements[k-1][x][0], x_k = alinements[k-1][x][1], y_k = alinements[k-1][x][2];
+                        frame.Position += Utility.ConvertAngleToScaleVec(theta_k, pos.x, pos.z);
+                        frame.Position.x += x_k;
+                        frame.Position.y += pos.y;
+                        frame.Position.z += y_k;
+
+                        thetaVec += Utility.ConvertAngleToVec(-theta_k);
+                        x0 += -x_k;
+                        z0 += -y_k;
+                    }
+                }
+                frame.Position /= objs.Count;
+                frame.Position.x += x0 / objs.Count;
+                frame.Position.z += z0 / objs.Count;
+                var theta = Utility.ConvertVecToAngle(thetaVec / objs.Count);
+                var tmpY = frame.Position.y;
+                frame.Position = Utility.ConvertAngleToScaleVec(theta, frame.Position.x, frame.Position.z);
+                frame.Position.y = tmpY;
+                blend.Motion.motionData.Add(frame);
             }
-            // for (int i = 0; i <= maxI - minI; i++) {
-            //     float sumX=0, sumZ=0;
-            //     int xIdx=-1, zIdx=-1;
-            //     for (int j = 0; j < blend.ChannelDatas.Count; j++) {
-            //         int dataType = blend.ChannelDatas[j].Item2;
-            //         if (dataType < 3){
-            //             Vector2 sum = new Vector2();
-            //             for (int k = 0; k < objs.Count; k++) {
-            //                 int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-            //                 float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
-            //                 int idx = pareChxIdx[k, j];
-            //                 var partObj = objs[k].ChannelDatas[idx].Item1;
-            //                 float angle = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
-            //                 sum += Utility.ConvertAngleToVec(angle);
-            //             }
-            //             blend.Motion.motionData[i, j] = Utility.ConvertVecToAngle(sum / objs.Count);
-            //         }
-            //         else{
-            //             float sum = 0;
-            //             for (int k = 0; k < objs.Count; k++) {
-            //                 int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-            //                 float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
-            //                 int idx = pareChxIdx[k, j];
-            //                 var partObj = objs[k].ChannelDatas[idx].Item1;
-            //                 float pos = objs[k].Motion.getMotion(ii, idx, objs[k].ChannelDatas[idx]);
-            //                 if (k > 0 && dataType == 3) {
-            //                     sumX += pos * Mathf.Cos(alinements[k-1][x][0]);
-            //                     sumZ += pos * Mathf.Sin(alinements[k-1][x][0]);
-            //                     sumX += alinements[k-1][x][1];
-            //                     xIdx = j;
-            //                 }
-            //                 else if (k > 0 && dataType == 5) {
-            //                     sumX += pos * Mathf.Sin(alinements[k-1][x][0]);
-            //                     sumZ += pos * Mathf.Cos(alinements[k-1][x][0]);
-            //                     sumZ += alinements[k-1][x][2];
-            //                     zIdx = j;
-            //                 }
-            //                 else sum += pos;
-            //             }
-            //             blend.Motion.motionData[i, j] += sum / objs.Count;
-            //         }
-            //     }
-            //     if(xIdx >= 0) blend.Motion.motionData[i, xIdx] += sumX / objs.Count;
-            //     if(zIdx >= 0) blend.Motion.motionData[i, zIdx] += sumZ / objs.Count;
-            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
-            //     float x0=0, z0=0;
-            //     Vector2 thetaVec = new Vector2();
-            //     for (int k = 0; k < objs.Count; k++) {
-            //         if (k == 0) {
-            //             thetaVec += new Vector2((float)1 / objs.Count, 0);
-            //         }
-            //         else{
-            //             int x = i + minI - timewarps[k-1][0].Item1;
-            //             thetaVec += Utility.ConvertAngleToVec(-alinements[k-1][x][0]) / objs.Count;
-            //             x0 += -alinements[k-1][x][1] / objs.Count;
-            //             z0 += -alinements[k-1][x][2] / objs.Count;
-            //         }
-            //     }
-            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
-            //     if(zIdx >= 0) 
-            //         blend.Motion.motionData[i, xIdx] += x0;
-            //     if(zIdx >= 0) 
-            //         blend.Motion.motionData[i, zIdx] += z0;
-            //     var theta = Utility.ConvertVecToAngle(thetaVec);
-            //     float tmpX = xIdx >= 0 ? blend.Motion.motionData[i, xIdx]: 0;
-            //     float tmpZ = zIdx >= 0 ? blend.Motion.motionData[i, zIdx]: 0;
-            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
-            //     if(zIdx >= 0) 
-            //         blend.Motion.motionData[i, xIdx] += tmpX * Mathf.Cos(theta) + tmpZ * Mathf.Sin(theta);
-            //     if(zIdx >= 0) 
-            //         blend.Motion.motionData[i, zIdx] += tmpX * Mathf.Sin(theta) + tmpZ * Mathf.Cos(theta);
-            //     Debug.Log(blend.Motion.motionData[i, xIdx]);
-            // }
             blend.Motion.FitPathCurve(blend);
             blend.Motion.CurveGameObject.transform.parent = blend.transform;
             blend.gameObject.SetActive(true);

@@ -59,6 +59,12 @@ namespace BVH {
         public static Vector2 ConvertAngleToVec(float a) {
             return new Vector2(Mathf.Cos(a * Mathf.Deg2Rad), Mathf.Sin(a * Mathf.Deg2Rad));
         }
+        public static Vector3 ConvertAngleToScaleVec(float theta, float x, float z) {
+            Vector3 newVector = new Vector3();
+            newVector.x = x * Mathf.Cos(theta) + z * Mathf.Sin(theta);
+            newVector.z = x * Mathf.Sin(theta) + z * Mathf.Cos(theta);
+            return newVector;
+        }
         public static float ConvertVecToAngle(Vector2 v) {
             float angle = Vector2.Angle(v, new Vector2(1, 0));
             if (v.y < 0) angle = -angle;

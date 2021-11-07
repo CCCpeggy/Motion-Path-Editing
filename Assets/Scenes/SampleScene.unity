@@ -309,11 +309,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 963194225}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 323dfca47fabf2342b116893b77c3ed7, type: 3}
+  m_Script: {fileID: 11500000, guid: 2a6559a04e9903a4b804246cff1f7242, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  smoothSpeed: 0.125
+  smoothSpeed: 0
   offset: {x: 0, y: 0, z: 0}
 --- !u!1 &1754759919
 GameObject:

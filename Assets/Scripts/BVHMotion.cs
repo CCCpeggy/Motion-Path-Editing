@@ -128,9 +128,6 @@ namespace BVH {
             float alpha = frameIdx - previousFrameIdx;
 
             for(int i = 0; i < 18; i++){
-                var partObj = obj.ChannelDatas[i].Item1;
-                int posAndRotIdx = obj.ChannelDatas[i].Item2;
-                
                 Quaternion previousRotValue = motionData[previousFrameIdx].Rotation[i];
                 Quaternion nextRotValue = motionData[nextFrameIdx].Rotation[i];
                 Quaternion thisRotValue = Utility.GetQuaternionAvg(previousRotValue, nextRotValue, alpha);
@@ -139,11 +136,11 @@ namespace BVH {
                 obj.Part[i].transform.localRotation = thisRotValue;
             }
 
-            Vector3 previousPos = CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
-            Vector3 nextPos = CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
-            previousPos += motionData[previousFrameIdx].Position;
-            nextPos += motionData[nextFrameIdx].Position;
+            Vector3 previousPos = motionData[previousFrameIdx].Position;
+            Vector3 nextPos = motionData[nextFrameIdx].Position;
             obj.Root.transform.position += previousPos * (1 - alpha) + nextPos * alpha;
+            obj.Root.transform.position += CurveGameObject.GetComponent<Curve>().GetPos(frameIdx / frameCount);
+            obj.Root.transform.localRotation *= CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / frameCount);
             obj.UpdateLines();
         }
         public void ResetMotionInfo(int frameCount, float frameTime) {

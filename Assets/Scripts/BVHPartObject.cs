@@ -119,6 +119,9 @@ namespace BVH {
             if (lr) {
                 lr.SetPosition(0, gameObject.transform.position);
                 lr.SetPosition(1, Parent.gameObject.transform.position);
+
+                //Ellipsoids.drawEllipsoids(Parent.gameObject.transform.position, gameObject.transform.position, lr);
+                //Ellipsoids_Sphere.setEllipsoid(Parent.gameObject.transform.position, gameObject.transform.position);
             }
         }
         public void UpdateMutiLines(){
@@ -127,9 +130,6 @@ namespace BVH {
                 c.UpdateSingleLine();
             }
         }
+
     }
-
-    
-
-
 }

@@ -52,9 +52,10 @@ public class Curve : MonoBehaviour {
     }
 
     GameObject[] controlPointObjs = new GameObject[4];
-    GameObject[] controlPointLineObjs = new GameObject[4];
+    GameObject[] controlPointLineObjs = new GameObject[3];
     List<GameObject> curveLineObjs = new List<GameObject>();
     Matrix<double> controlPoints;
+    Matrix<double> originControlPoints;
     int n;
 
     public Curve Clone() {
@@ -62,6 +63,7 @@ public class Curve : MonoBehaviour {
     }
 
     public void CreateCurvePointsAndLine() {
+        originControlPoints = controlPoints.Clone();
         // 畫控制點
         var controlPointsGroup = new GameObject();
         controlPointsGroup.name = "ControlPoints";
@@ -77,12 +79,11 @@ public class Curve : MonoBehaviour {
         var controlPointLines = new GameObject();
         controlPointLines.name = "ControlPointLines";
         controlPointLines.transform.parent = transform;
-        Vector3 last = new Vector3((float)controlPoints[3, 0], 0, (float)controlPoints[3, 1]);
-        for (int i = 0; i < 4; i++) {
-            Vector3 p = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);;
+        for (int i = 0; i < 3; i++) {
+            Vector3 last = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);
+            Vector3 p = new Vector3((float)controlPoints[i + 1, 0], 0, (float)controlPoints[i + 1, 1]);;
             GameObject line = CreateLine(last, p);
             line.transform.parent = controlPointLines.transform;
-            last = p;
             controlPointLineObjs[i] = line;
         }
 
@@ -92,13 +93,14 @@ public class Curve : MonoBehaviour {
         curveLineGroup.transform.parent = transform;
         int count = 0;
         double step=1;
-        for(double i=0; i < n;i += step){
-            last = GetP((i-step*1.05)/n, controlPoints);
-            Vector3 p = GetP(i/n, controlPoints);
+        for (double i = 0; i < n; i += step)
+        {
+            Vector3 last = GetP((i - step * 1.05) / n, controlPoints);
+            Vector3 p = GetP(i / n, controlPoints);
             GameObject line = CreateLine(last, p, "line_" + count++);
             line.transform.parent = curveLineGroup.transform;
             curveLineObjs.Add(line);
-        }   
+        }
     }
 
     // public void ReCreateCurvePointsAndLine() {
@@ -121,6 +123,7 @@ public class Curve : MonoBehaviour {
 
         Curve curveObj = curve.AddComponent<Curve>();
         curveObj.controlPoints = controlPoints;
+        curveObj.originControlPoints = controlPoints.Clone();
         curveObj.n = n;
         curveObj.CreateCurvePointsAndLine();
 
@@ -131,6 +134,7 @@ public class Curve : MonoBehaviour {
         GameObject.Destroy(this.GetComponent<Curve>());
         Curve curveObj = gameObject.AddComponent<Curve>();
         curveObj.controlPoints = controlPoints;
+        curveObj.originControlPoints = controlPoints;
         curveObj.n = n;
         curveObj.CreateCurvePointsAndLine();
     }
@@ -143,18 +147,17 @@ public class Curve : MonoBehaviour {
         }
 
         // 將控制點之間連線
-        Vector3 last = new Vector3((float)controlPoints[3, 0], 0, (float)controlPoints[3, 1]);
-        for (int i = 0; i < 4; i++) {
-            Vector3 p = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);;
+        for (int i = 0; i < 3; i++) {
+            Vector3 last = new Vector3((float)controlPoints[i, 0], 0, (float)controlPoints[i, 1]);
+            Vector3 p = new Vector3((float)controlPoints[i + 1, 0], 0, (float)controlPoints[i + 1, 1]);
             UpdateLine(controlPointLineObjs[i], last, p);
-            last = p;
         }
 
         // 畫曲線
         int step = 1;
         int count = 0;
         for(double i=0; i < n;i += step){
-            last = GetP((i-step*1.05)/n, controlPoints);
+            Vector3 last = GetP((i-step*1.05)/n, controlPoints);
             Vector3 p = GetP(i/n, controlPoints);
             UpdateLine(curveLineObjs[count++], last, p);
         }
@@ -162,6 +165,19 @@ public class Curve : MonoBehaviour {
     
     public Vector3 GetPos(float t) {
         return GetP(t, controlPoints);
+    }
+
+    public Quaternion GetRot(float t)
+    {
+        Vector3 oriPrevious = GetP(t - 0.05, originControlPoints);
+        Vector3 oriNext = GetP(t + 0.05, originControlPoints);
+        Vector3 oriDir = oriNext - oriPrevious;
+        Vector3 nowPrevious = GetPos((float)(t - 0.05));
+        Vector3 nowNext = GetPos((float)(t + 0.05));
+        Vector3 nowDir = nowNext - nowPrevious;
+        float oriAngle = BVH.Utility.ConvertVecToAngle(new Vector2(oriDir.x, oriDir.z));
+        float nowAngle = BVH.Utility.ConvertVecToAngle(new Vector2(nowDir.x, nowDir.z));
+        return Quaternion.Euler(0, oriAngle - nowAngle, 0);
     }
 }
 

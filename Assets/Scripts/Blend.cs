@@ -50,33 +50,32 @@ namespace BVH {
                 
                 float x0=0, z0=0;
                 Vector2 thetaVec = new Vector2();
+                Vector3 centerPos = new Vector3();
                 for (int k = 0; k < objs.Count; k++) {
                     int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
                     float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
                     Vector3 pos = objs[k].Motion.getFramePosition(ii);
                     if (k == 0) {
-                        frame.Position = pos;
+                        centerPos = pos;
                         thetaVec += new Vector2((float)1 / objs.Count, 0);
                     }
                     else {
-                        float theta_k = alinements[k-1][x][0], x_k = alinements[k-1][x][1], y_k = alinements[k-1][x][2];
-                        frame.Position += Utility.ConvertAngleToScaleVec(theta_k, pos.x, pos.z);
-                        frame.Position.x += x_k;
-                        frame.Position.y += pos.y;
-                        frame.Position.z += y_k;
+                        float theta_k = alinements[k-1][x][0], x_k = alinements[k-1][x][1], z_k = alinements[k-1][x][2];
+                        pos = Quaternion.Euler(0, theta_k, 0) * (pos + new Vector3(x_k, 0, z_k) - centerPos);
+                        frame.Position += pos;
 
                         thetaVec += Utility.ConvertAngleToVec(-theta_k);
                         x0 += -x_k;
-                        z0 += -y_k;
+                        z0 += -z_k;
                     }
                 }
                 frame.Position /= objs.Count;
-                frame.Position.x += x0 / objs.Count;
-                frame.Position.z += z0 / objs.Count;
-                var theta = Utility.ConvertVecToAngle(thetaVec / objs.Count);
+                Debug.Log(frame.Position);
                 var tmpY = frame.Position.y;
-                frame.Position = Utility.ConvertAngleToScaleVec(theta, frame.Position.x, frame.Position.z);
-                frame.Position.y = tmpY;
+                var theta = Utility.ConvertVecToAngle(thetaVec / objs.Count);
+                frame.Position = Quaternion.Euler(0, theta, 0) * frame.Position;
+                frame.Position.x += x0 / objs.Count + centerPos.x;
+                frame.Position.z += z0 / objs.Count + centerPos.z;
                 blend.Motion.motionData.Add(frame);
             }
             blend.Motion.FitPathCurve(blend);
@@ -100,10 +99,8 @@ namespace BVH {
             Data[,] timewarp = new Data[o1Count, o2Count];
             int i, j, lastI = 0, lastJ = 0;
             for (i = 0; i < o1Count; i++) {
-                o1.ApplyFrameByIdx(i);
                 for (j = 0; j < o2Count; j++) {
-                    o2.ApplyFrameByIdx(j);
-                    timewarp[i, j] = Distance(o1.Part, o2.Part);
+                    timewarp[i, j] = Distance(o1, o2, i, j);
                     var left = j > 0 ? timewarp[i, j - 1].SumDistance : 0;
                     var up = i > 0 ? timewarp[i - 1, j].SumDistance : 0;
                     var leftup = i > 0 && j > 0 ? timewarp[i - 1, j - 1].SumDistance : 0;
@@ -149,23 +146,26 @@ namespace BVH {
             }
             i = lastI;
             j = lastJ;
-            while (i >= 0 && j >= 0){
+            while (i >= 0 && j >= 0)
+            {
                 alinement.Add(new float[]{timewarp[i, j].Theta, timewarp[i, j].X0, timewarp[i, j].Z0});
                 toO2Frame.Add(new Tuple<int, int>(i, j));
                 var tmp_timewarp = timewarp[i, j];
                 i = tmp_timewarp.PreviousI;
                 j = tmp_timewarp.PreviousJ;
             }
+            alinement.Reverse();
             toO2Frame.Reverse();
             List<Tuple<int, float>> newtoO2Frame = new List<Tuple<int, float>>();
             List<float[]> newAlinement = new List<float[]>();
             for(i=toO2Frame[0].Item1;i<=toO2Frame[toO2Frame.Count-1].Item1; i++) {
-                var idx = toO2Frame.Select((x, i) => new {i, x}).Where(x => x.x.Item1 == x.i).Select(x=>x.i).ToArray();
+                var idx = toO2Frame.Select((x, i) => new {i, x}).Where(x => x.x.Item1 == i).Select(x=>x.i).ToArray();
                 float theta=0, x0=0, z0=0;
-                for(j=0;j < idx.Length;j++){
-                    theta += alinement[j][0] / idx.Length;
-                    x0 += alinement[j][1] / idx.Length;
-                    z0 += alinement[j][2] / idx.Length;
+                for (j=0;j < idx.Length;j++)
+                {
+                    theta += alinement[idx[j]][0] / idx.Length;
+                    x0 += alinement[idx[j]][1] / idx.Length;
+                    z0 += alinement[idx[j]][2] / idx.Length;
                 }
                 newAlinement.Add(new float[]{theta, x0, z0});
                 newtoO2Frame.Add(new Tuple<int, float>(i, S(toO2Frame, i)));
@@ -184,35 +184,44 @@ namespace BVH {
             public float X0 = 0;
             public float Z0 = 0;
         }
-        public static Data Distance(BVH.BVHPartObject[] r1, BVH.BVHPartObject[] r2) {
+        public static Data Distance(BVH.BVHObject o1, BVH.BVHObject o2, int o1Idx, int o2Idx) {
             float tan11 = 0, tan12 = 0, tan21 = 0, tan22 = 0;
             float x1 = 0, x2 = 0, z1 = 0, z2 = 0;
-            float w = (float)1.0 / 18;
-            for (int i = 0; i < 18; i++) {
-                Vector3 v1 = r1[i].transform.position;
-                Vector3 v2 = r2[i].transform.position;
-                tan11 += w * (v1.x * v2.z - v2.x * v1.z);
-                tan21 += w * (v1.x * v2.x - v1.z * v2.z);
-                x1 += w * v1.x;
-                x2 += w * v2.x;
-                z1 += w * v1.z;
-                z2 += w * v2.z;
+            float w = (float)1.0 / 18 / 5;
+            Vector3[] vi1 = new Vector3[18], vi2 = new Vector3[18];
+            for (int i = 0; i < 5; i++)
+            {
+                int o1IdxPlusI = Utility.Clip(o1Idx + i - 2, 0, o1.Motion.FrameCount - 1);
+                int o2IdxPlusI = Utility.Clip(o2Idx + i - 2, 0, o2.Motion.FrameCount - 1);
+                o1.ApplyFrameByIdx(o1IdxPlusI);
+                o2.ApplyFrameByIdx(o2IdxPlusI);
+                for (int j = 0; j < 18; j++)
+                {
+                    Vector3 v1 = o1.Part[i].transform.position;
+                    Vector3 v2 = o2.Part[i].transform.position;
+                    if (i == 2)
+                    {
+                        vi1[j] = v1;
+                        vi2[j] = v2;
+                    }
+                    tan11 += w * (v1.x * v2.z - v2.x * v1.z);
+                    tan21 += w * (v1.x * v2.x + v1.z * v2.z);
+                    x1 += w * v1.x;
+                    x2 += w * v2.x;
+                    z1 += w * v1.z;
+                    z2 += w * v2.z;
+                }
             }
             tan12 = x1 * z2 - x2 * z1;
-            tan22 = x1 * x2 - z1 * z2;
+            tan22 = x1 * x2 + z1 * z2;
             Data data = new Data();
             data.Theta = Mathf.Atan((tan11 - tan12) / (tan21 - tan22));
+            // data.Theta = Utility.ConvertVecToAngle(new Vector2(tan21 - tan22, tan11 - tan12)) * Mathf.Deg2Rad;
             data.X0 = x1 - x2 * Mathf.Cos(data.Theta) - z2 * Mathf.Sin(data.Theta);
-            data.Z0 = z1 - x2 * Mathf.Sin(data.Theta) - z2 * Mathf.Cos(data.Theta);
+            data.Z0 = z1 + x2 * Mathf.Sin(data.Theta) - z2 * Mathf.Cos(data.Theta);
             for (int i = 0; i < 18; i++) {
-                Vector3 v1 = r1[i].transform.position;
-                Vector3 v2 = r2[i].transform.position;
-                float tmpX = v2.x, tmpZ = v2.z;
-                v2.x = tmpX * Mathf.Cos(data.Theta) + tmpZ * Mathf.Sin(data.Theta);
-                v2.z = tmpX * Mathf.Sin(data.Theta) + tmpZ * Mathf.Cos(data.Theta);
-                v2.x += data.X0;
-                v2.z += data.Z0;
-                data.Distance += Vector3.Distance(v1, v2);
+                Vector3 v2 = Quaternion.Euler(0, data.Theta, 0) * (vi2[i] + new Vector3(data.X0, 0, data.Z0));
+                data.Distance += Vector3.Distance(vi1[i], v2);
             }
             return data;
         }

@@ -167,7 +167,7 @@ namespace BVH {
             Quaternion previous = motionData[previousFrameIdx].Rotation[partIdx];
             Quaternion next = motionData[nextFrameIdx].Rotation[partIdx];
             float alpha = frameIdx - previousFrameIdx;
-            return Utility.GetQuaternionAvg(previous, next, alpha);
+            return Utility.GetQuaternionAvg(previous, next, alpha) * CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / frameCount);
         }
     }
 }

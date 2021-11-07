@@ -59,7 +59,8 @@ public class Curve : MonoBehaviour {
     int n;
 
     public Curve Clone() {
-        return CreateCurve(controlPoints, n, name).GetComponent<Curve>();
+        var newCurve = CreateCurve(controlPoints, n, name).GetComponent<Curve>();
+        return newCurve;
     }
 
     public void CreateCurvePointsAndLine() {

@@ -36,44 +36,51 @@ namespace BVH {
             blend.gameObject.name = "blend";
             blend.Motion = new BVHMotion();
             blend.Motion.ResetMotionInfo(maxI - minI + 1, sumFrameTime / objs.Count);
-            
-            for (int i = 0; i <= maxI - minI; i++) {
+
+            for (int i = 0; i <= maxI - minI; i++)
+            {
                 BVHMotion.Frame frame = new BVHMotion.Frame();
-                for (int j = 0; j < 18; j++) {
-                    for (int k = 0; k < objs.Count; k++) {
-                        int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-                        float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
-                        var objRot = objs[k].Motion.getFrameQuaternion(ii, k);
-                        frame.Rotation[j] = Utility.GetQuaternionAvg(objs[k].Motion.motionData[i].Rotation[j], objRot, 1/(k+1));
+                for (int j = 0; j < 18; j++)
+                {
+                    for (int k = 0; k < objs.Count; k++)
+                    {
+                        int x = k == 0 ? -1 : i + minI - timewarps[k - 1][0].Item1;
+                        float ii = k == 0 ? i + minI : timewarps[k - 1][x].Item2;
+                        var objRot = objs[k].Motion.getFrameQuaternion(ii, j);
+                        frame.Rotation[j] = k == 0 ? objRot : Quaternion.Lerp(objRot, frame.Rotation[j], 1.0f / (k + 1));
                     }
                 }
-                
-                float x0=0, z0=0;
+
                 Vector2 thetaVec = new Vector2();
                 Vector3 centerPos = new Vector3();
-                for (int k = 0; k < objs.Count; k++) {
-                    int x = k == 0? -1: i + minI - timewarps[k-1][0].Item1;
-                    float ii = k == 0? i + minI: timewarps[k-1][x].Item2;
+                Vector3 translate = new Vector3();
+                Quaternion angle = new Quaternion();
+                for (int k = 0; k < objs.Count; k++)
+                {
+                    int x = k == 0 ? -1 : i + minI - timewarps[k - 1][0].Item1;
+                    float ii = k == 0 ? i + minI : timewarps[k - 1][x].Item2;
                     Vector3 pos = objs[k].Motion.getFramePosition(ii);
-                    if (k == 0) {
+                    if (k == 0)
+                    {
                         centerPos = pos;
-                        thetaVec += new Vector2((float)1 / objs.Count, 0);
                     }
-                    else {
-                        float theta_k = alinements[k-1][x][0], x_k = alinements[k-1][x][1], z_k = alinements[k-1][x][2];
+                    else
+                    {
+                        float theta_k = alinements[k - 1][x][0], x_k = alinements[k - 1][x][1], z_k = alinements[k - 1][x][2];
                         pos = Quaternion.Euler(0, theta_k, 0) * (pos + new Vector3(x_k, 0, z_k) - centerPos);
                         frame.Position += pos;
 
-                        thetaVec += Utility.ConvertAngleToVec(-theta_k);
-                        x0 += -x_k;
-                        z0 += -z_k;
+                        angle = Quaternion.Lerp(Quaternion.Euler(0, -theta_k, 0), angle, 1.0f / (k + 1));
+                        translate += new Vector3(-x_k, 0, -z_k);
                     }
                 }
                 frame.Position /= objs.Count;
                 var theta = Utility.ConvertVecToAngle(thetaVec / objs.Count);
-                frame.Position = Quaternion.Euler(0, theta, 0) * frame.Position;
-                frame.Position.x += x0 / objs.Count + centerPos.x;
-                frame.Position.z += z0 / objs.Count + centerPos.z;
+                //translate = Quaternion.Euler(0, theta, 0) * translate;
+                //frame.Position = Quaternion.Euler(0, theta, 0) * frame.Position;
+                frame.Position += translate / objs.Count + centerPos;
+                frame.Position.y = centerPos.y;
+                frame.Rotation[0] = frame.Rotation[0] * angle;
                 blend.Motion.motionData.Add(frame);
             }
             blend.Motion.FitPathCurve(blend);
@@ -113,8 +120,7 @@ namespace BVH {
                     {
                         float frameIdx = (float)i / frameCount * objs[k].Motion.FrameCount;
                         var angle = objs[k].Motion.getFrameQuaternion(frameIdx, j);
-                        frame.Rotation[j] = k == 0 ? angle : Quaternion.Lerp(angle, frame.Rotation[j], 1.0f/k+1);
-                        Debug.Log(frame.Rotation[j]);
+                        frame.Rotation[j] = k == 0 ? angle : Quaternion.Lerp(angle, frame.Rotation[j], 1.0f/(k+1));
                     }
                 }
                 for (int k = 0; k < objs.Count; k++)

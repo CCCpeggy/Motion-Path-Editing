@@ -29,7 +29,8 @@ public class Curve : MonoBehaviour {
         {-3 , 0, 3 , 0},
         {1 , 4, 1 , 0}}
     );
-    public static Vector3 GetP(double u, Matrix<double> p) {
+    public static Vector3 GetP(double u, Matrix<double> p)
+    {
         Vector<double> v = new DenseVector(new double[] {u*u*u, u*u, u, 1});
         var points = v.ToRowMatrix().Multiply(bm).Multiply(p) * one_six;
         return new Vector3((float)points[0, 0], 0, (float)points[0, 1]);
@@ -56,11 +57,55 @@ public class Curve : MonoBehaviour {
     List<GameObject> curveLineObjs = new List<GameObject>();
     Matrix<double> controlPoints;
     Matrix<double> originControlPoints;
+    float[] timeToT = new float[40];
     int n;
 
     public Curve Clone() {
         var newCurve = CreateCurve(controlPoints, n, name).GetComponent<Curve>();
         return newCurve;
+    }
+
+    public void UpdateTimeToT()
+    {
+        if (controlPoints == null) return;
+        float amount = 0, sum = 0;
+        for (float t = 1; t <= 100; t++)
+        {
+            sum += Vector3.Distance(GetPos((t - 1) / 100, false), GetPos(t / 100, false));
+        }
+        float divide = sum / 30;
+        int count = 6;
+        for (float t = 0; count < 40; t++)
+        {
+            float dis = Vector3.Distance(GetPos((t - 1) / 100, false), GetPos(t / 100, false));
+            amount += dis;
+            if (amount > divide)
+            {
+                timeToT[count++] = t / 100;
+                amount -= divide;
+            }
+        }
+        timeToT[5] = 0;
+        count = 4;
+        for (float t = -1; count >= 0; t--)
+        {
+            float dis = Vector3.Distance(GetPos((t - 1) / 100, false), GetPos(t / 100, false));
+            amount += dis;
+            if (amount > divide)
+            {
+                timeToT[count--] = t / 100;
+                amount -= divide;
+            }
+        }
+    }
+
+    public float getTByTime(float t)
+    {
+        t = t * 30 + 5;
+        int previousIdx = (int)t;
+        int nextIdx = previousIdx + 1;
+        float alpha = t - previousIdx;
+        return timeToT[previousIdx] * (1 - alpha) + timeToT[nextIdx] * alpha;
     }
 
     public void CreateCurvePointsAndLine() {
@@ -102,6 +147,7 @@ public class Curve : MonoBehaviour {
             line.transform.parent = curveLineGroup.transform;
             curveLineObjs.Add(line);
         }
+        UpdateTimeToT();
     }
 
     // public void ReCreateCurvePointsAndLine() {
@@ -162,16 +208,22 @@ public class Curve : MonoBehaviour {
             Vector3 p = GetP(i/n, controlPoints);
             UpdateLine(curveLineObjs[count++], last, p);
         }
+        UpdateTimeToT();
     }
     
-    public Vector3 GetPos(float t) {
-        return GetP(t, controlPoints);
+    public Vector3 GetPos(float t, bool isTime=true)
+    {
+        return GetP(isTime?getTByTime(t):t, controlPoints);
+    }
+    public Vector3 GetOriPos(float t, bool isTime=true)
+    {
+        return GetP(isTime ? getTByTime(t) : t, originControlPoints);
     }
 
     public Quaternion GetRot(float t)
     {
-        Vector3 oriPrevious = GetP(t - 0.05, originControlPoints);
-        Vector3 oriNext = GetP(t + 0.05, originControlPoints);
+        Vector3 oriPrevious = GetOriPos((float)(t - 0.05));
+        Vector3 oriNext = GetOriPos((float)(t + 0.05));
         Vector3 oriDir = oriNext - oriPrevious;
         Vector3 nowPrevious = GetPos((float)(t - 0.05));
         Vector3 nowNext = GetPos((float)(t + 0.05));

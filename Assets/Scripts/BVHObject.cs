@@ -78,10 +78,10 @@ namespace BVH {
         public void ApplyFrameByIdx(float frameIdx) {
             Motion.ApplyFrame(frameIdx, this);
         }
-        public void ApplyFrame(float deltaTime) {
-            time += deltaTime;
-            float frameTime = time / Motion.FrameTime;
-            float frame = frameTime - ((int)(frameTime / Motion.FrameCount)) * Motion.FrameCount;
+        public void ApplyFrame(float time) {
+            //time += deltaTime;
+            float frameIdx = time / Motion.FrameTime;
+            float frame = frameIdx - ((int)(frameIdx / Motion.FrameCount)) * Motion.FrameCount;
             Motion.ApplyFrame(frame, this);
         }
 
@@ -183,7 +183,7 @@ namespace BVH {
         void Update()
         {
             if(Root && gameObject.activeSelf){
-                ApplyFrame(Time.deltaTime);
+                ApplyFrame(Time.time);
             }
         }
 

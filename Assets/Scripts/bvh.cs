@@ -22,8 +22,15 @@ public class bvhEditor : Editor
         bvhFilePath = EditorGUILayout.TextField("Bvh File Path", bvhFilePath);
         if(GUILayout.Button("Create"))
         {
-            var tmp = BVH.BVHObject.CreateBVHObject(bvhFilePath);
-            myBvh.BVHObjects.Add(tmp.GetComponent<BVH.BVHObject>());
+            try
+            {
+                var tmp = BVH.BVHObject.CreateBVHObject(bvhFilePath);
+                myBvh.BVHObjects.Add(tmp.GetComponent<BVH.BVHObject>());
+            }
+            catch
+            {
+                Debug.Log("Something Error");
+            }
         }
         if(GUILayout.Button("Blend"))
         {

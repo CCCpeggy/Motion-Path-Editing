@@ -34,6 +34,10 @@ public class bvhEditor : Editor
         }
         if(GUILayout.Button("Blend"))
         {
+            BVH.Blend.Do2(myBvh.BVHObjects);
+        }
+        if (GUILayout.Button("Registrationi Curves"))
+        {
             BVH.Blend.Do(myBvh.BVHObjects);
         }
         serializedObject.ApplyModifiedProperties();

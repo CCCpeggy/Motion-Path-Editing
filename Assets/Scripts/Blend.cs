@@ -70,8 +70,6 @@ namespace BVH {
                     }
                 }
                 frame.Position /= objs.Count;
-                Debug.Log(frame.Position);
-                var tmpY = frame.Position.y;
                 var theta = Utility.ConvertVecToAngle(thetaVec / objs.Count);
                 frame.Position = Quaternion.Euler(0, theta, 0) * frame.Position;
                 frame.Position.x += x0 / objs.Count + centerPos.x;
@@ -84,6 +82,52 @@ namespace BVH {
             for(int i = 0; i < objs.Count; i++) {
                 GameObject.Destroy(objs[i].gameObject);
             }
+            return blend;
+        }
+        public static BVH.BVHObject Do2(List<BVH.BVHObject> objs)
+        {
+            if (objs.Count == 0) return null;
+            else if (objs.Count == 1) return objs[0].Clone();
+
+            float frameTime = 0;
+            int frameCount = 0;
+            for (int i = 0; i < objs.Count; i++)
+            {
+                frameTime += objs[i].Motion.FrameTime;
+                frameCount += objs[i].Motion.FrameCount;
+            }
+            frameTime /= objs.Count;
+            frameCount /= objs.Count;
+
+            BVH.BVHObject blend = objs[0].Clone(false);
+            blend.gameObject.name = "blend";
+            blend.Motion = new BVHMotion();
+            blend.Motion.ResetMotionInfo(frameCount, frameTime);
+
+            for (int i = 0; i < frameCount; i++)
+            {
+                BVHMotion.Frame frame = new BVHMotion.Frame();
+                for (int j = 0; j < 18; j++)
+                {
+                    for (int k = 0; k < objs.Count; k++)
+                    {
+                        float frameIdx = (float)i / frameCount * objs[k].Motion.FrameCount;
+                        var angle = objs[k].Motion.getFrameQuaternion(frameIdx, j);
+                        frame.Rotation[j] = k == 0 ? angle : Quaternion.Lerp(angle, frame.Rotation[j], 1.0f/k+1);
+                        Debug.Log(frame.Rotation[j]);
+                    }
+                }
+                for (int k = 0; k < objs.Count; k++)
+                {
+                    float frameIdx = (float)i / frameCount * objs[k].Motion.FrameCount;
+                    frame.Position += objs[k].Motion.getFramePosition(frameIdx);
+                }
+                frame.Position /= objs.Count;
+                blend.Motion.motionData.Add(frame);
+            }
+            blend.Motion.FitPathCurve(blend);
+            blend.Motion.CurveGameObject.transform.parent = blend.transform;
+            blend.gameObject.SetActive(true);
             return blend;
         }
 

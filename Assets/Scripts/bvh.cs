@@ -14,7 +14,7 @@ public class bvh : MonoBehaviour
 [CustomEditor(typeof(bvh))]
 public class bvhEditor : Editor
 {
-    string bvhFilePath = @"D:\workplace\3D遊戲\P1\bvh_sample_files\bvh_sample_files\walk_loop.bvh";
+    string bvhFilePath;
     public override void OnInspectorGUI()
     {
         bvh myBvh = (bvh)target;

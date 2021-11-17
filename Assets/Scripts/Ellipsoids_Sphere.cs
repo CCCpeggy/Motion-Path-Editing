@@ -4,14 +4,7 @@ using UnityEngine;
 
 public class Ellipsoids_Sphere : MonoBehaviour
 {
-    static private Vector3 parentPosition;
-    static private Vector3 selfPosition;
-
-    static private float semiMajor, semiMinor, semiAxes;
-
-    static public Vector3 rotate;
-
-    public GameObject parent, self;
+    public GameObject obj1, obj2;
 
     static GameObject Ellipsoid;
 
@@ -19,67 +12,41 @@ public class Ellipsoids_Sphere : MonoBehaviour
     void Start()
     {
         Ellipsoid = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-
-        parentPosition = parent.transform.position;
-        selfPosition = self.transform.position;
-
-        Vector3 targetDir = parentPosition - selfPosition;
-        float angle = Vector3.Angle(targetDir, transform.right);
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        parentPosition = parent.transform.position;
-        selfPosition = self.transform.position;
-        //setEllipsoid(parentPosition, selfPosition);
-
-        Vector3 targetDir = parentPosition - selfPosition;
-
-        //float angleX = Vector3.Angle(targetDir, Vector3.right);
-        //float angleY = Vector3.Angle(targetDir, Vector3.up);
-        float angleZ = Vector3.Angle(targetDir, Vector3.forward);
-
-        semiMajor = Vector3.Distance(parentPosition, selfPosition);
-        semiMinor = semiMajor / 5;
-        semiAxes = semiMinor;
-
-        Vector3 scale = new Vector3(semiMinor, semiMajor, semiAxes);
-
-        Debug.Log(targetDir);
-        Debug.Log(angleZ);
-
-        Ellipsoid.transform.position = new Vector3(selfPosition.x + targetDir.x / 2, selfPosition.y + targetDir.y / 2, selfPosition.z + targetDir.z / 2);
-
-        Ellipsoid.transform.localScale = scale;
-
-        Ellipsoid.transform.rotation = Quaternion.Euler(0, 0, angleZ);
-
-        //Debug.Log(Ellipsoid.transform.rotation);
+        if (obj1 != null && obj2 != null) {
+            setEllipsoid(obj1.transform.position, obj2.transform.position);
+            Ellipsoid.SetActive(true);
+        }
+        else {
+            Ellipsoid.SetActive(false);
+        }
     }
 
-    public static void setEllipsoid(Vector3 parentPos, Vector3 selfPos)
+    public void setEllipsoid(Vector3 pos1, Vector3 pos2)
     {
-        //Ellipsoid = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        Vector3 targetDir = pos1 - pos2;
+        Vector3 targetPos = targetDir / 2 + pos2;
 
-        Vector3 targetDir = parentPos - selfPos;
+        float semiMajor = Vector3.Distance(pos1, pos2);
+        float semiMinor = semiMajor / 5;
 
-        float angleX = Vector3.Angle(targetDir, Vector3.right);
-        float angleY = Vector3.Angle(targetDir, Vector3.up);
-        float angleZ = Vector3.Angle(targetDir, Vector3.forward);
+        Vector3 scale = new Vector3(semiMinor, semiMajor, semiMinor);
 
-        //Debug.Log(angleX);
-        //Debug.Log(angleZ);
-
-
-        semiMajor = Vector3.Distance(parentPosition, selfPosition);
-        semiMinor = semiMajor / 5;
-        semiAxes = semiMinor;
-
-        Vector3 scale = new Vector3(semiMinor, semiMajor, semiAxes);
-
-        Ellipsoid.transform.position = new Vector3(selfPosition.x + targetDir.x / 2, selfPosition.y + targetDir.y / 2, selfPosition.z + targetDir.z / 2);
+        Ellipsoid.transform.position = targetPos;
 
         Ellipsoid.transform.localScale = scale;
+
+        targetDir.Normalize();
+        var rotation = Quaternion.FromToRotation(Vector3.up, targetDir);
+        Ellipsoid.transform.rotation = rotation;
+    }
+
+    public void SetObject(GameObject obj1, GameObject obj2) {
+        this.obj1 = obj1;
+        this.obj2 = obj2;
     }
 }

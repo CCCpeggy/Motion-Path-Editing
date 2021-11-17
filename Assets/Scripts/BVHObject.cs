@@ -9,7 +9,6 @@ namespace BVH {
     public class BVHObject: MonoBehaviour{
         public BVHPartObject Root;
         public BVHMotion Motion;
-        float time = 0;
         public List<Tuple<BVHPartObject, int>> ChannelDatas = new List<Tuple<BVHPartObject, int>>();
         public BVHPartObject[] Part;
         public static GameObject CreateBVHObject(string filename) {

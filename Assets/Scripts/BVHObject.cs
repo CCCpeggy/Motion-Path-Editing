@@ -179,6 +179,24 @@ namespace BVH {
                 }
             }
         }
+        
+        public void RenamePartCMU() {
+            Part = new BVHPartObject[31];
+            List<BVHPartObject> bfs = new List<BVHPartObject>();
+            bfs.Add(Root);
+            int queueIdx = 0;
+            while (queueIdx < bfs.Count) {
+                var cur = bfs[queueIdx++];
+                int idx = BVH.Utility.CMUMotion.GetPartIdxByNameCMU(cur.name);
+                if (idx >= 0) {
+                    Part[idx] = cur;
+                }
+                else{
+                    Debug.LogError(cur.name + "找不到對應部位");
+                    Assert.IsTrue(false);
+                }
+            }
+        }
         void Update()
         {
             if(Root && gameObject.activeSelf){

@@ -37,7 +37,11 @@ public class bvh : MonoBehaviour
     public void Blend() {
         LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\cowboy.bvh");
         LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\sexywalk.bvh");
-        new BVH.TimeWarping(BVHObjects[0], BVHObjects[1]).Do();
+        var obj1 = BVHObjects[0];
+        var obj2 = BVHObjects[1];
+        var blendObj = new BVH.TimeWarping(obj1, obj2).Do();
+        BVHObjects.Add(blendObj);
+        blendObj.name = obj1.name + "_" + obj2.name;
     }
 
     public void ChangeCameraFollower() {

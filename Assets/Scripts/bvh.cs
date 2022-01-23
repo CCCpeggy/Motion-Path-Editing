@@ -9,13 +9,13 @@ public class bvh : MonoBehaviour
     public CameraFollow cameraFollow;
     public Camera UpToDownCamera;
     public Dropdown cameraDropdown;
+    public ControlModel controlModel;
+    public bool useModel = true;
     private bool editMode = false;
     public Material lineMaterial, CurveMaterial, CurveControlMaterial, SelectedMaterial;
     int preSelectedIdx = 0;
     void Start()
     {
-        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\cowboy.bvh");
-        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\sexywalk.bvh");
         cameraDropdown.onValueChanged.AddListener(delegate { ChangeCameraFollower(); });
     }
     public void LoadBVH()
@@ -33,7 +33,8 @@ public class bvh : MonoBehaviour
             if (cameraFollow && BVHObjects.Count == 1)
             {
                 cameraFollow.target = bvhObject.Root.transform;
-                cameraDropdown.value = BVHObjects.Count - 1;
+                cameraDropdown.value = 0;
+                controlModel.bVHObject = bvhObject;
             }
         }
         catch (System.Exception e)
@@ -71,10 +72,13 @@ public class bvh : MonoBehaviour
     {
         int index = cameraDropdown.value;
         cameraFollow.target = BVHObjects[index].Root.transform;
+        controlModel.bVHObject = BVHObjects[index];
         BVHObjects[preSelectedIdx].SetLineMaterial(lineMaterial);
         BVHObjects[index].SetLineMaterial(SelectedMaterial);
-        Edit(preSelectedIdx);
-        Edit();
+        if(editMode) {
+            Edit(preSelectedIdx);
+            Edit();
+        }
 
         preSelectedIdx = index;
     }
@@ -95,6 +99,11 @@ public class bvh : MonoBehaviour
             editMode = true;
         }
     }
+
+    // public void OpenOrCloseModel() {
+    //     useModel = !useModel;
+    //     controlModel.gameObject.SetActive(useModel);
+    // }
 }
 
 // [CustomEditor(typeof(bvh))]

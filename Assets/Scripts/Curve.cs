@@ -107,6 +107,31 @@ public class Curve : MonoBehaviour {
         float alpha = t - previousIdx;
         return timeToT[previousIdx] * (1 - alpha) + timeToT[nextIdx] * alpha;
     }
+    public void SetLineVisible(bool visible) {
+       gameObject.SetActive(visible);
+    }
+
+    public void SetMaterial(Material controlLineMat, Material curveLineMat) {
+        for(int i=0; i<3;i++) {
+            var line = controlPointLineObjs[i].GetComponent<LineRenderer>();
+            if (line) {
+                line.material = controlLineMat;
+                line.startWidth = 5f;
+                line.endWidth = 5f;
+            }
+        }
+        for(int i=0; i<curveLineObjs.Count;i++) {
+            var line = curveLineObjs[i].GetComponent<LineRenderer>();
+            if (line) {
+                line.material = curveLineMat;
+                line.startWidth = 3f;
+                line.endWidth = 3f;
+            }
+        }
+        for(int i=0; i<4;i++) {
+            controlPointObjs[i].transform.localScale = new Vector3(5, 5, 5);
+        }
+    }
 
     public void CreateCurvePointsAndLine() {
         originControlPoints = controlPoints.Clone();

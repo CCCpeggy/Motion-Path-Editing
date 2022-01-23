@@ -234,6 +234,17 @@ namespace BVH
                 }
             }
         }
+        public void SetLineMaterial(Material material)
+        {
+            for (int i = 0; i < Part.Length; i++) {
+                var line = Part[i].gameObject.GetComponent<LineRenderer>();
+                if (line) {
+                    line.material = material;
+                    line.startWidth = 1f;
+                    line.endWidth = 0.5f;
+                }
+            }
+        }
         public BVHMotion.Frame getFrame(float frameIdx)
         {
             BVHMotion.Frame frame = new BVHMotion.Frame(Part.Length);

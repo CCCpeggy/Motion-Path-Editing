@@ -12,6 +12,12 @@ namespace BVH {
             if (value >= max) return max;
             return value;
         }
+        public static float Clip(float value, float min, float max)
+        {
+            if (value <= min) return min;
+            if (value >= max) return max;
+            return value;
+        }
         public class CMUMotion {
             public static int GetPartIdxByNameCMU(string name){
                 switch(name){

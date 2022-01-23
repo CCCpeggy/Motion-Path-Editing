@@ -9,18 +9,8 @@ using UnityEngine.Assertions;
 
 namespace BVH {
     public class BVHMotion{
-        private int frameCount;
-        public int FrameCount{
-            get{
-                return frameCount;
-            }
-        }
-        private float frameTime;
-        public float FrameTime{
-            get{
-                return frameTime;
-            }
-        }
+        public int FrameCount;
+        public float FrameTime;
         public class Frame{
             public Vector3 Position = new Vector3();
             public Quaternion[] Rotation = new Quaternion[18];
@@ -30,28 +20,32 @@ namespace BVH {
                 newFrame.Rotation = Rotation.Clone() as Quaternion[];
                 return newFrame;
             }
+            public Frame(int count = 18)
+            {
+                Rotation = new Quaternion[count];
+            }
         }
-        public List<Frame> motionData;
+        public List<Frame> MotionData;
         public GameObject CurveGameObject;
         public BVHMotion Clone(){
             BVHMotion bVHMotion = new BVHMotion();
-            bVHMotion.frameCount = frameCount;
-            bVHMotion.frameTime = frameTime;
-            bVHMotion.motionData = new List<Frame>();
-            for(int i = 0; i < motionData.Count; i++)  
-                bVHMotion.motionData.Add(motionData[i].Clone());
+            bVHMotion.FrameCount = FrameCount;
+            bVHMotion.FrameTime = FrameTime;
+            bVHMotion.MotionData = new List<Frame>();
+            for(int i = 0; i < MotionData.Count; i++)  
+                bVHMotion.MotionData.Add(MotionData[i].Clone());
             bVHMotion.CurveGameObject = CurveGameObject.GetComponent<Curve>().Clone().gameObject;
             return bVHMotion;
         }
         public static BVHMotion readMotion(ref IEnumerator<string> bvhDataIter, BVHObject obj) {
             BVHMotion motion = new BVHMotion();
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Frames:");
-            motion.frameCount = int.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
+            motion.FrameCount = int.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Frame");
             Utility.IterData.CheckAndNext(ref bvhDataIter, "Time:");
-            motion.frameTime = float.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
-            motion.motionData = new List<Frame>();
-            for (int i = 0; i < motion.frameCount; i++) {
+            motion.FrameTime = float.Parse(Utility.IterData.GetAndNext(ref bvhDataIter));
+            motion.MotionData = new List<Frame>();
+            for (int i = 0; i < motion.FrameCount; i++) {
                 Frame frame = new Frame();
                 for (int j = 0; j < 18; j++) {
                     frame.Rotation[j] = Quaternion.Euler(0, 0, 0);
@@ -70,13 +64,13 @@ namespace BVH {
                         else if (infoIdx == 2) frame.Rotation[partIdx] *= Quaternion.Euler(0, 0, num);
                     }
                 }
-                motion.motionData.Add(frame);
+                motion.MotionData.Add(frame);
             }
             return motion;
         }
 
         public void FitPathCurve(BVHObject obj) {
-            int n = frameCount;
+            int n = FrameCount;
 
             int xIdx=-1, zIdx=-1;
             for(int i = 0; i < obj.ChannelDatas.Count; i++){
@@ -103,9 +97,9 @@ namespace BVH {
                         A[i, j] += B[i] * B[j];
                     }
                     if (xIdx >= 0)
-                        b[i, 0] += B[i] * motionData[t].Position.x;
+                        b[i, 0] += B[i] * MotionData[t].Position.x;
                     if (zIdx >= 0)
-                        b[i, 1] += B[i] * motionData[t].Position.z;
+                        b[i, 1] += B[i] * MotionData[t].Position.z;
                 }
             }
             var x = A.Solve(b);
@@ -116,59 +110,72 @@ namespace BVH {
             for(int t = 0; t < n; t++){
                 Vector3 curPos = curve.GetPos((float)t / n);
                 if (xIdx >= 0)
-                    motionData[t].Position.x -= curPos.x;
+                    MotionData[t].Position.x -= curPos.x;
                 if (zIdx >= 0)
-                    motionData[t].Position.z -= curPos.z;
+                    MotionData[t].Position.z -= curPos.z;
             }
+        }
+        public void ApplyFrame(Frame frame, BVHObject obj) {
+            var Part = obj.Part;
+            for (int i = 0; i < Part.Length; i++)
+            {
+                Part[i].transform.localPosition = Part[i].Offset;
+                Part[i].transform.localRotation = frame.Rotation[i];
+            }
+
+            //Vector3 previousPos = MotionData[previousFrameIdx].Position;
+            //Vector3 nextPos = MotionData[nextFrameIdx].Position;
+            //PoseObj.Root.transform.position += previousPos * (1 - alpha) + nextPos * alpha;
+            // PoseObj.UpdateLines();
         }
 
         public void ApplyFrame(float frameIdx, BVHObject obj) {
             int previousFrameIdx = (int)frameIdx;
-            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
+            int nextFrameIdx = (previousFrameIdx + 1) % FrameCount;
             float alpha = frameIdx - previousFrameIdx;
 
             for(int i = 0; i < 18; i++){
-                Quaternion previousRotValue = motionData[previousFrameIdx].Rotation[i];
-                Quaternion nextRotValue = motionData[nextFrameIdx].Rotation[i];
+                Quaternion previousRotValue = MotionData[previousFrameIdx].Rotation[i];
+                Quaternion nextRotValue = MotionData[nextFrameIdx].Rotation[i];
                 Quaternion thisRotValue = Utility.GetQuaternionAvg(previousRotValue, nextRotValue, alpha);
                 // Debug.Log(previousRotValue + ", " + nextRotValue + ", " + thisRotValue) ; 
                 obj.Part[i].transform.localPosition = obj.Part[i].Offset;
                 obj.Part[i].transform.localRotation = thisRotValue;
             }
 
-            Vector3 previousPos = motionData[previousFrameIdx].Position;
-            Vector3 nextPos = motionData[nextFrameIdx].Position;
+            Vector3 previousPos = MotionData[previousFrameIdx].Position;
+            Vector3 nextPos = MotionData[nextFrameIdx].Position;
             obj.Root.transform.position += previousPos * (1 - alpha) + nextPos * alpha;
-            obj.Root.transform.position += CurveGameObject.GetComponent<Curve>().GetPos(frameIdx / frameCount);
-            obj.Root.transform.localRotation *= CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / frameCount);
+            obj.Root.transform.position += CurveGameObject.GetComponent<Curve>().GetPos(frameIdx / FrameCount);
+            obj.Root.transform.localRotation *= CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / FrameCount);
             obj.UpdateLines();
         }
         public void ResetMotionInfo(int frameCount, float frameTime) {
-            this.frameCount = frameCount;
-            this.frameTime = frameTime;
-            if (this.motionData == null)
-                this.motionData = new List<Frame>();
+            this.FrameCount = frameCount;
+            this.FrameTime = frameTime;
+            if (this.MotionData == null)
+                this.MotionData = new List<Frame>();
             else
-                this.motionData.Clear();
+                this.MotionData.Clear();
         }
         public Vector3 getFramePosition(float frameIdx) {
             int previousFrameIdx = (int)frameIdx;
-            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
-            Vector3 previous = motionData[previousFrameIdx].Position;
-            Vector3 next = motionData[nextFrameIdx].Position;
-            previous += CurveGameObject.GetComponent<Curve>().GetPos((float)previousFrameIdx / frameCount);
-            next += CurveGameObject.GetComponent<Curve>().GetPos((float)nextFrameIdx / frameCount);
+            int nextFrameIdx = (previousFrameIdx + 1) % FrameCount;
+            Vector3 previous = MotionData[previousFrameIdx].Position;
+            Vector3 next = MotionData[nextFrameIdx].Position;
             float alpha = frameIdx - previousFrameIdx;
-            return previous * (1 - alpha) + next * alpha;
+            Vector3 pos = previous * (1 - alpha) + next * alpha;
+            pos += CurveGameObject.GetComponent<Curve>().GetPos((float)frameIdx / FrameCount);
+            return pos;
         }
         public Quaternion getFrameQuaternion(float frameIdx, int partIdx) {
             int previousFrameIdx = (int)frameIdx;
-            int nextFrameIdx = (previousFrameIdx + 1) % frameCount;
-            Quaternion previous = motionData[previousFrameIdx].Rotation[partIdx];
-            Quaternion next = motionData[nextFrameIdx].Rotation[partIdx];
+            int nextFrameIdx = (previousFrameIdx + 1) % FrameCount;
+            Quaternion previous = MotionData[previousFrameIdx].Rotation[partIdx];
+            Quaternion next = MotionData[nextFrameIdx].Rotation[partIdx];
             float alpha = frameIdx - previousFrameIdx;
             var angle = Utility.GetQuaternionAvg(previous, next, alpha);
-            return (partIdx == 0 ? angle * CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / frameCount) : angle);
+            return partIdx == 0 ? angle * CurveGameObject.GetComponent<Curve>().GetRot(frameIdx / FrameCount) : angle;
         }
     }
 }

@@ -14,9 +14,12 @@ public class bvh : MonoBehaviour
 
     public void LoadBVH() {
         var bvhFilePath = StandaloneFileBrowser.OpenFilePanel("Open BVH File", ".",  new []{new ExtensionFilter("BVH", "bvh")}, false)[0];
+        LoadBVH(bvhFilePath);
+    }
+    public void LoadBVH(string path) {
         try
         {
-            BVH.BVHObject bvhObject = BVH.BVHObject.CreateBVHObject(bvhFilePath).GetComponent<BVH.BVHObject>();
+            BVH.BVHObject bvhObject = BVH.BVHObject.CreateBVHObject(path).GetComponent<BVH.BVHObject>();
             
             BVHObjects.Add(bvhObject);
             cameraDropdown.AddOptions(new List<string> {bvhObject.name});
@@ -30,6 +33,11 @@ public class bvh : MonoBehaviour
         {
             Debug.LogError(e);
         }
+    }
+    public void Blend() {
+        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\cowboy.bvh");
+        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\sexywalk.bvh");
+        new BVH.TimeWarping(BVHObjects[0], BVHObjects[1]).Do();
     }
 
     public void ChangeCameraFollower() {

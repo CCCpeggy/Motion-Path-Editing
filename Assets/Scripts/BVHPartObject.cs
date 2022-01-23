@@ -5,11 +5,13 @@ using UnityEngine;
 
 namespace BVH {
     public class BVHPartObject: MonoBehaviour{
+        public int PartIdx = -1;
         public Vector3 Offset = new Vector3();
         public List<BVHPartObject> Child = new List<BVHPartObject>();
         public BVHPartObject Parent = null;
         public BVHPartObject Clone(BVHPartObject parentObject=null){
             BVHPartObject newPart = BVHPartObject.CreateGameObject(name, parentObject);
+            newPart.PartIdx = PartIdx;
             newPart.Offset = Offset;
             foreach(var child in Child) {
                 child.Clone(newPart);

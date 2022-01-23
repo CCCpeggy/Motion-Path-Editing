@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace BVH {
     class Blend{
-        public static BVH.BVHObject Do(List<BVH.BVHObject> blendObjs) {
+        public static BVH.BVHObject Do3(List<BVH.BVHObject> blendObjs) {
             if(blendObjs.Count == 0) return null;
             else if(blendObjs.Count == 1) return blendObjs[0].Clone();
             
@@ -81,7 +81,7 @@ namespace BVH {
                 frame.Position += translate / objs.Count + centerPos;
                 frame.Position.y = centerPos.y;
                 frame.Rotation[0] = frame.Rotation[0] * angle;
-                blend.Motion.motionData.Add(frame);
+                blend.Motion.MotionData.Add(frame);
             }
             blend.Motion.FitPathCurve(blend);
             blend.Motion.CurveGameObject.transform.parent = blend.transform;
@@ -129,7 +129,7 @@ namespace BVH {
                     frame.Position += objs[k].Motion.getFramePosition(frameIdx);
                 }
                 frame.Position /= objs.Count;
-                blend.Motion.motionData.Add(frame);
+                blend.Motion.MotionData.Add(frame);
             }
             blend.Motion.FitPathCurve(blend);
             blend.Motion.CurveGameObject.transform.parent = blend.transform;

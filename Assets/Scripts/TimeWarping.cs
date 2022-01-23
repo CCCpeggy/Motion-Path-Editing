@@ -27,6 +27,8 @@ namespace BVH
         BVHObject refObj;   // 對應的
         BVHObject newBasicObj, newRefObj;
         public float[] Warping;
+        int startFrameIdx = -1;
+        float lastRefFrameIdx = -1;
         // public List<float[]> Alinement;
         public TimeWarping(BVHObject basicObj, BVHObject refObj)
         {
@@ -35,7 +37,55 @@ namespace BVH
             this.basicObj = basicObj;
             this.refObj = refObj;
         }
-        public BVHObject Do() {
+        public BVHObject Concat() {
+            Do();
+            BlendPart blendPart = new BlendPart(newBasicObj, newRefObj);
+            var resultObj = newBasicObj.Clone();
+            resultObj.Motion.MotionData.Clear();
+            Vector3 lastPos = new Vector3();
+            // for (int i=0; i < basicObj.Motion.FrameCount; i++) {
+            //     var frame = basicObj.getFrame(i);
+            //     resultObj.Motion.MotionData.Add(frame);
+            //     lastPos = frame.Position;
+            // }
+            for (int i=0; i < startFrameIdx; i++) {
+                var frame = basicObj.getFrame(i);
+                frame.Position += lastPos;
+                resultObj.Motion.MotionData.Add(frame);
+            }
+            Vector3 lastPos2 = new Vector3();
+            for (int i=0; i < newBasicObj.Motion.FrameCount; i++) {
+                float alpha = (float)i / (newBasicObj.Motion.FrameCount - 1);
+                var frame = blendPart.getFrame(i, alpha);
+                frame.Position += lastPos2;
+                resultObj.Motion.MotionData.Add(frame);
+                lastPos2 = frame.Position;
+            }
+            for (int i=(int)lastRefFrameIdx+1; i < refObj.Motion.FrameCount; i++) {
+                var frame = refObj.getFrame(i);
+                frame.Position += lastPos;
+                resultObj.Motion.MotionData.Add(frame);
+                // lastPos2 = frame.Position;
+            }
+            // for (int i=0; i < refObj.Motion.FrameCount; i++) {
+            //     var frame = refObj.getFrame(i);
+            //     frame.Position += lastPos2;
+            //     resultObj.Motion.MotionData.Add(frame);
+            // }
+            resultObj.Motion.FrameCount = resultObj.Motion.MotionData.Count();
+            Debug.Log(resultObj.Motion.FrameCount);
+            resultObj.Motion.FrameTime = (newBasicObj.Motion.FrameTime + newRefObj.Motion.FrameTime) / 2;
+            ResetPath(resultObj);
+            return resultObj;
+        }
+        public BVHObject Blend() {
+            Do();
+            BlendPart blendPart = new BlendPart(newBasicObj, newRefObj);
+            var resultObj = blendPart.Get();
+            ResetPath(resultObj);
+            return resultObj;
+        }
+        public void Do() {
             newBasicObj = basicObj.Clone();
             newBasicObj.name += "_after_timewarping";
             newBasicObj.gameObject.SetActive(false);
@@ -49,10 +99,6 @@ namespace BVH
             
             newBasicObj.gameObject.SetActive(false);
             newRefObj.gameObject.SetActive(false);
-            BlendPart blendPart = new BlendPart(newBasicObj, newRefObj);
-            var resultObj = blendPart.Get();
-            ResetPath(resultObj);
-            return resultObj;
         }
         private static bool isLess(double num1, double num2) {
             // -1 代表無限大
@@ -224,13 +270,17 @@ namespace BVH
         }
         private void applyTimeWarping() {
             newRefObj.Motion.MotionData.Clear();
-            int startFrameIdx = -1;
+            startFrameIdx = -1;
             int lastFrameIdx = -1;
+            lastRefFrameIdx = -1;
             for (int i = 0; i < basicObj.Motion.FrameCount; i++) {
                 if (Warping[i] >= 0 && Warping[i] <= refObj.Motion.FrameCount - 1) {
                     lastFrameIdx = i;
                     if (startFrameIdx < 0) startFrameIdx = i + 1;
-                    else newRefObj.Motion.MotionData.Add(refObj.getFrame(Warping[i]));
+                    else {
+                        newRefObj.Motion.MotionData.Add(refObj.getFrame(Warping[i]));
+                        lastRefFrameIdx = Warping[i];
+                    }
                 }
             }
             newBasicObj.Motion.MotionData.Clear();

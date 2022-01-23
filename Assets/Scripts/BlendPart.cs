@@ -46,4 +46,40 @@ class BlendPart
         }
         return newObj;
     }
+
+    public BVH.BVHMotion.Frame getFrame(int frameIdx, float alpha=0.5f)
+    {
+        refObj.ApplyFrameByIdx(frameIdx);
+        basicObj.ApplyFrameByIdx(frameIdx);
+
+        BVH.BVHMotion.Frame frame = new BVH.BVHMotion.Frame();
+        for (int i = 0; i < refObj.Part.Length; i++)
+        {
+            var refRotation = refObj.Motion.MotionData[frameIdx].Rotation[i];
+            var basicRotation = basicObj.Motion.MotionData[frameIdx].Rotation[i];
+            frame.Rotation[i] = Quaternion.Lerp(basicRotation, refRotation, alpha);
+        }
+        Vector3 nowRefPos = refObj.Root.transform.position;
+        Vector3 nowBasicPos = basicObj.Root.transform.position;
+        if (frameIdx >= 1) {
+
+            refObj.ApplyFrameByIdx(frameIdx-1);
+            basicObj.ApplyFrameByIdx(frameIdx-1);
+            Vector3 preRefPos = refObj.Root.transform.position;
+            Vector3 preBasicPos = basicObj.Root.transform.position;
+
+            Vector3 refMovVec = nowRefPos - preRefPos;
+            Vector3 basicMovVec = nowBasicPos - preBasicPos;
+            Quaternion angle = Quaternion.FromToRotation(basicMovVec, refMovVec);
+            Vector3 move = Quaternion.Lerp(angle, new Quaternion(), 1-alpha) * basicMovVec;
+            move.Normalize();
+            move *= (refMovVec.magnitude + basicMovVec.magnitude) / 2;
+            frame.Position = move;
+        }
+        else{
+            frame.Position = Vector3.Lerp(nowBasicPos, nowRefPos, alpha);
+        }
+            
+        return frame;
+    }
 }

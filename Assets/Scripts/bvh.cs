@@ -10,6 +10,7 @@ public class bvh : MonoBehaviour
     public Dropdown cameraDropdown;
     void Start() {
         BVHObjects.Clear();
+        cameraDropdown.onValueChanged.AddListener(delegate {ChangeCameraFollower();});
     }
 
     public void LoadBVH() {
@@ -20,9 +21,7 @@ public class bvh : MonoBehaviour
         try
         {
             BVH.BVHObject bvhObject = BVH.BVHObject.CreateBVHObject(path).GetComponent<BVH.BVHObject>();
-            
-            BVHObjects.Add(bvhObject);
-            cameraDropdown.AddOptions(new List<string> {bvhObject.name});
+            AddBVHObj(bvhObject);
             cameraDropdown.gameObject.SetActive(true);
             if (cameraFollow) {
                 cameraFollow.target = bvhObject.Root.transform;
@@ -34,14 +33,28 @@ public class bvh : MonoBehaviour
             Debug.LogError(e);
         }
     }
+
+    public void AddBVHObj (BVH.BVHObject bvhObject) {
+        BVHObjects.Add(bvhObject);
+        cameraDropdown.AddOptions(new List<string> {bvhObject.name});
+    }
     public void Blend() {
         LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\cowboy.bvh");
         LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\sexywalk.bvh");
         var obj1 = BVHObjects[0];
         var obj2 = BVHObjects[1];
-        var blendObj = new BVH.TimeWarping(obj1, obj2).Do();
-        BVHObjects.Add(blendObj);
+        var blendObj = new BVH.TimeWarping(obj1, obj2).Blend();
         blendObj.name = obj1.name + "_" + obj2.name;
+        AddBVHObj(blendObj);
+    }
+    public void Concat() {
+        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\cowboy.bvh");
+        LoadBVH(@"D:\workplace\3D遊戲\P1\bvh_sample_files\sexywalk.bvh");
+        var obj1 = BVHObjects[0];
+        var obj2 = BVHObjects[1];
+        var concatObj = new BVH.TimeWarping(obj1, obj2).Concat();
+        concatObj.name = obj1.name + "_" + obj2.name;
+        AddBVHObj(concatObj);
     }
 
     public void ChangeCameraFollower() {

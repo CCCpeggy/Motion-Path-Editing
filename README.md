@@ -105,3 +105,10 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 ### 相機跟隨
 
 相機會慢慢往指定的物件移動
+
+## 如何用 Unity 開啟
+
+### 使用的 Library
+
+* MathNet.Numerics
+* gkngkc/UnityStandaloneFileBrowser

@@ -1,4 +1,4 @@
-# Motion Path Editing
+ Motion Path Editing
 
 ## 介紹
 
@@ -74,6 +74,9 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 在 Update() 中，對每一個關節，套入對應幀的移動與旋轉。
 為了讓動作更加平滑，所以對於幀與幀之間會去做位置與旋轉角度的內插。
 
+* 位置內插：$\text{new position} = (1 - t) \times \text{previous position} + t \times \text{next position}$
+* 角度內插：使用 Unity 的 API `Quaternion.Lerp`
+
 ### 路徑
 
 1. 用 Curve 去模擬原本動作的位移路徑，利用解矩陣的方式，使 Curve 與原本的經過的點距離最短 (目前只有使用一段 Curve 去模擬)。
@@ -81,7 +84,15 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 3. 使用者可以透過編輯控制點，來操控曲線的樣子
 4. 之後在取每一幀的時候，就會再加上對應 Curve 的位移與並旋轉至前進方向
 
+<div class="info">
+
+> 參考資料：[【Paper】Motion Path Editing](https://medium.com/maochinn/paper-motion-path-editing-c6779c24822b)
+
+</div>
+
 ### Timewarp
+
+!!! _ 來自 Registration Curves[^1] 中提出的 Timewarp
 
 這邊將兩個動作分別用 a 跟 b 代稱。
 建立一個表，列為 a 的所有 frame，欄為 b 的所有 frame，算出所有表格所對應的 a 與 b 的距離
@@ -91,6 +102,8 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 * 斜率在 2 以內，也就是最多連續向橫向或值向走兩格
 * 兩個 frame 的距離在目前最長的路徑的一半以內
 * DP 時只會往左、上、左上找，以確保路徑只會往右、下、右下走
+
+[^1]: Lucas Kovar and Michael Gleicher, Flexible Automatic Motion Blending with Registration Curves
 
 ### 合成
 
@@ -104,4 +117,25 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 
 ### 相機跟隨
 
-相機會慢慢往指定的物件移動
+計算出與相機與目標物體的向量，並使相機往那個方向前進，達到相機慢慢往目標的物件移動的效果。
+
+<style>
+.info blockquote
+{
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+</style>
+
+<style>
+.warning p
+{
+  color: #8a6d3b;
+  background-color: #fcf8e3;
+  border-color: #faebcc;
+  padding: 15px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+</style>

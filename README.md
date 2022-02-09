@@ -1,4 +1,6 @@
- Motion Path Editing
+# Motion Path Editing
+
+> 台灣科技大學 - 3D 電腦遊戲 - Project 4
 
 ## 介紹
 
@@ -119,6 +121,17 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 
 計算出與相機與目標物體的向量，並使相機往那個方向前進，達到相機慢慢往目標的物件移動的效果。
 
+## 運行程式碼
+
+### 安裝 Library
+
+* [MathNet.Numerics](numerics.mathdotnet.com)
+* [gkngkc/UnityStandaloneFileBrowser](https://github.com/gkngkc/UnityStandaloneFileBrowser)
+
+### 開啟
+
+* 使用 Unity 開啟專案（開發使用版本為 `2020.3.20f1`）
+
 <style>
 .info blockquote
 {
@@ -126,9 +139,6 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
   background-color: #d9edf7;
   border-color: #bce8f1;
 }
-</style>
-
-<style>
 .warning p
 {
   color: #8a6d3b;

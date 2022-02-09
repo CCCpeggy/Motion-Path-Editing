@@ -86,11 +86,15 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 3. 使用者可以透過編輯控制點，來操控曲線的樣子
 4. 之後在取每一幀的時候，就會再加上對應 Curve 的位移與並旋轉至前進方向
 
+<div class="info">
+
 > 參考資料：[【Paper】Motion Path Editing](https://medium.com/maochinn/paper-motion-path-editing-c6779c24822b)
+
+</div>
 
 ### Timewarp
 
-> 來自 Registration Curves[^1] 中提出的 Timewarp
+!!! _ 來自 Registration Curves[^1] 中提出的 Timewarp
 
 這邊將兩個動作分別用 a 跟 b 代稱。
 建立一個表，列為 a 的所有 frame，欄為 b 的所有 frame，算出所有表格所對應的 a 與 b 的距離
@@ -127,3 +131,21 @@ BVH 分成兩個部分，上半部是樹狀的骨架資訊，下半部是動作�
 ### 開啟
 
 * 使用 Unity 開啟專案（開發使用版本為 `2020.3.20f1`）
+
+<style>
+.info blockquote
+{
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+.warning p
+{
+  color: #8a6d3b;
+  background-color: #fcf8e3;
+  border-color: #faebcc;
+  padding: 15px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+</style>
